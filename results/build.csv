@@ -1,0 +1,19 @@
+clients,variant,kind,chunk_interval,rows,load_s,index_s,compress_s
+100,plain,plain,,114300,0.15,0.14,0.00
+100,plain_clustered,plain_clustered,,114300,0.11,0.42,0.00
+100,hyper,hypertable,30 days,114300,0.13,0.26,0.00
+100,cmp_7d,compressed,7 days,114300,0.24,0.49,0.99
+100,cmp_30d,compressed,30 days,114300,0.15,0.30,0.53
+100,cmp_90d,compressed,90 days,114300,0.10,0.22,0.37
+1000,plain,plain,,1143000,1.57,1.31,0.00
+1000,plain_clustered,plain_clustered,,1143000,1.44,4.77,0.00
+1000,hyper,hypertable,30 days,1143000,1.72,2.02,0.00
+1000,cmp_7d,compressed,7 days,1143000,2.01,2.22,6.00
+1000,cmp_30d,compressed,30 days,1143000,1.68,2.15,5.51
+1000,cmp_90d,compressed,90 days,1143000,1.56,1.58,3.17
+10000,plain,plain,,11430000,17.84,20.21,0.00
+10000,plain_clustered,plain_clustered,,11430000,19.81,73.16,0.00
+10000,hyper,hypertable,30 days,11430000,19.16,18.52,0.00
+10000,cmp_7d,compressed,7 days,11430000,21.39,21.45,67.61
+10000,cmp_30d,compressed,30 days,11430000,20.23,17.39,57.71
+10000,cmp_90d,compressed,90 days,11430000,20.38,17.52,35.71

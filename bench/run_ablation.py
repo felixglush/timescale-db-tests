@@ -27,6 +27,7 @@ import time
 from pathlib import Path
 
 import psycopg
+from psycopg.types.numeric import Int4
 
 ROOT = Path(__file__).resolve().parent.parent
 QUERIES = {
@@ -65,10 +66,14 @@ def make_params(query: str, rng: random.Random, n_clients: int, start: dt.date,
         length = rng.randint(1, min(12, months))
     first = add_months(start, rng.randint(0, months - length))
     last = add_months(first, length)
+    # Int4: psycopg would otherwise send small ints as int2 / int2[]. With an
+    # int2[] parameter the generic plan of a prepared statement cannot push
+    # client_id = ANY($1::integer[]) into the compressed chunks' segment index,
+    # and decompresses every client's batches in the time range (see EXPERIMENT_LOG.md).
     if query.startswith(("Q1", "Q2")):
-        who = rng.randint(1, n_clients)
+        who = Int4(rng.randint(1, n_clients))
     else:
-        who = sorted(rng.sample(range(1, n_clients + 1), min(set_size, n_clients)))
+        who = [Int4(x) for x in sorted(rng.sample(range(1, n_clients + 1), min(set_size, n_clients)))]
     return (who, ts(first), ts(last)), length
 
 
@@ -126,19 +131,48 @@ def restart_cold(dsn: str):
     wait_ready(dsn)
 
 
+def txn_buffers(node):
+    """Shared hit/read blocks of the scans on transactions (or its chunks), so the
+    joins to accounts/vendors/categories don't drown out the storage difference."""
+    rel = node.get("Relation Name", "")
+    if rel == "transactions" or rel.startswith("_hyper_"):
+        return node.get("Shared Hit Blocks", 0), node.get("Shared Read Blocks", 0)
+    hit = read = 0
+    for child in node.get("Plans", []):
+        h, r = txn_buffers(child)
+        hit, read = hit + h, read + r
+    return hit, read
+
+
 def server_timed(conn, sql, params):
     """Server-side execution via EXPLAIN ANALYZE (rows are produced but not sent):
-    returns execution ms, planning ms, rows, shared blocks hit, shared blocks read."""
+    returns execution ms, planning ms, rows, and shared blocks hit / read by the
+    transactions scans."""
     plan = conn.execute(f"EXPLAIN (ANALYZE, TIMING OFF, BUFFERS, FORMAT JSON) {sql}", params).fetchone()[0][0]
     top = plan["Plan"]
-    return (plan["Execution Time"], plan["Planning Time"], int(top["Actual Rows"]),
-            top.get("Shared Hit Blocks", 0), top.get("Shared Read Blocks", 0))
+    hit, read = txn_buffers(top)
+    return plan["Execution Time"], plan["Planning Time"], int(top["Actual Rows"]), hit, read
 
 
 def timed(conn, sql, params):
     t0 = time.perf_counter()
     rows = conn.execute(sql, params, prepare=True).fetchall()
     return (time.perf_counter() - t0) * 1000.0, len(rows)
+
+
+def write_outputs(out, summary_rows, size_rows, build_rows):
+    with open(out / "latency_summary.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(SUMMARY_COLS)
+        w.writerows(summary_rows)
+    with open(out / "sizes.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["clients", "variant", "table_bytes", "index_bytes", "toast_bytes", "total_bytes", "chunks"])
+        w.writerows(size_rows)
+    with open(out / "build.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["clients", "variant", "kind", "chunk_interval", "rows", "load_s", "index_s", "compress_s"])
+        w.writerows(build_rows)
 
 
 def main():
@@ -178,6 +212,7 @@ def main():
     meta = {"postgres": server[0], "timescaledb": server[1], "settings": settings, "args": vars(args),
             "started": dt.datetime.now(dt.timezone.utc).isoformat()}
     print(json.dumps(meta, indent=2))
+    (out / "run_meta.json").write_text(json.dumps(meta, indent=2, default=str))
 
     for n_clients in [int(x) for x in args.clients.split(",")]:
         print(f"\n=== {n_clients} clients: seeding + building variants")
@@ -243,20 +278,10 @@ def main():
                         summary_rows.append(summarise(n_clients, v, q, "cold", recs))
                 print(f"  cold {v} done")
         raw_f.flush()
+        write_outputs(out, summary_rows, size_rows, build_rows)
 
     raw_f.close()
-    with open(out / "latency_summary.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(SUMMARY_COLS)
-        w.writerows(summary_rows)
-    with open(out / "sizes.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["clients", "variant", "table_bytes", "index_bytes", "toast_bytes", "total_bytes", "chunks"])
-        w.writerows(size_rows)
-    with open(out / "build.csv", "w", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["clients", "variant", "kind", "chunk_interval", "rows", "load_s", "index_s", "compress_s"])
-        w.writerows(build_rows)
+    write_outputs(out, summary_rows, size_rows, build_rows)
     meta["finished"] = dt.datetime.now(dt.timezone.utc).isoformat()
     (out / "run_meta.json").write_text(json.dumps(meta, indent=2, default=str))
     print("done")

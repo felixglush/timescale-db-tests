@@ -27,7 +27,7 @@ CREATE TABLE accounts (
     account_id     integer PRIMARY KEY,
     client_id      integer      NOT NULL REFERENCES clients,
     account_type   account_type NOT NULL,
-    account_number text         NOT NULL UNIQUE,  -- masked, e.g. ****1234
+    account_number text         NOT NULL,  -- masked last four, e.g. ****1234 (not unique)
     opened_on      date         NOT NULL,
     UNIQUE (client_id, account_type),
     -- Target for the composite FK from transactions(account_id, client_id), which

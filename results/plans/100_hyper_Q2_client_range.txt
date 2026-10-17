@@ -1,0 +1,67 @@
+-- params: (Int4(28), datetime.datetime(2025, 6, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2025, 9, 1, 0, 0, tzinfo=datetime.timezone.utc))
+Sort  (cost=278.13..278.85 rows=288 width=100) (actual time=1.095..1.109 rows=288.00 loops=1)
+  Sort Key: t.txn_ts
+  Sort Method: quicksort  Memory: 59kB
+  Buffers: shared hit=238
+  ->  Hash Join  (cost=23.68..266.37 rows=288 width=100) (actual time=0.598..1.005 rows=288.00 loops=1)
+        Hash Cond: (v.category_id = c.category_id)
+        Buffers: shared hit=238
+        ->  Hash Join  (cost=22.38..264.07 rows=288 width=92) (actual time=0.568..0.933 rows=288.00 loops=1)
+              Hash Cond: (t.vendor_id = v.vendor_id)
+              Buffers: shared hit=237
+              ->  Hash Join  (cost=8.28..249.20 rows=288 width=83) (actual time=0.457..0.780 rows=288.00 loops=1)
+                    Hash Cond: (t.account_id = a.account_id)
+                    Buffers: shared hit=233
+                    ->  Append  (cost=1.78..241.94 rows=288 width=74) (actual time=0.035..0.316 rows=288.00 loops=1)
+                          Buffers: shared hit=231
+                          ->  Bitmap Heap Scan on _hyper_49_1014_chunk t_1  (cost=1.78..31.82 rows=31 width=74) (actual time=0.034..0.055 rows=31.00 loops=1)
+                                Recheck Cond: ((client_id = 28) AND (txn_ts >= '2025-06-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-09-01 00:00:00+00'::timestamp with time zone))
+                                Heap Blocks: exact=25
+                                Buffers: shared hit=28
+                                ->  Bitmap Index Scan on _hyper_49_1014_chunk_transactions_client_ts_idx  (cost=0.00..1.77 rows=31 width=0) (actual time=0.016..0.016 rows=31.00 loops=1)
+                                      Index Cond: ((client_id = 28) AND (txn_ts >= '2025-06-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-09-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Bitmap Heap Scan on _hyper_49_1015_chunk t_2  (cost=2.11..74.14 rows=94 width=74) (actual time=0.037..0.088 rows=94.00 loops=1)
+                                Recheck Cond: (client_id = 28)
+                                Heap Blocks: exact=73
+                                Buffers: shared hit=76
+                                ->  Bitmap Index Scan on _hyper_49_1015_chunk_transactions_client_ts_idx  (cost=0.00..2.09 rows=94 width=0) (actual time=0.017..0.017 rows=94.00 loops=1)
+                                      Index Cond: (client_id = 28)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Bitmap Heap Scan on _hyper_49_1016_chunk t_3  (cost=2.11..74.14 rows=94 width=74) (actual time=0.033..0.084 rows=94.00 loops=1)
+                                Recheck Cond: (client_id = 28)
+                                Heap Blocks: exact=67
+                                Buffers: shared hit=70
+                                ->  Bitmap Index Scan on _hyper_49_1016_chunk_transactions_client_ts_idx  (cost=0.00..2.09 rows=94 width=0) (actual time=0.014..0.014 rows=94.00 loops=1)
+                                      Index Cond: (client_id = 28)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Bitmap Heap Scan on _hyper_49_1017_chunk t_4  (cost=2.26..60.39 rows=69 width=74) (actual time=0.030..0.067 rows=69.00 loops=1)
+                                Recheck Cond: ((client_id = 28) AND (txn_ts >= '2025-06-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-09-01 00:00:00+00'::timestamp with time zone))
+                                Heap Blocks: exact=55
+                                Buffers: shared hit=57
+                                ->  Bitmap Index Scan on _hyper_49_1017_chunk_transactions_client_ts_idx  (cost=0.00..2.25 rows=69 width=0) (actual time=0.013..0.013 rows=69.00 loops=1)
+                                      Index Cond: ((client_id = 28) AND (txn_ts >= '2025-06-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-09-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 1
+                                      Buffers: shared hit=2
+                    ->  Hash  (cost=4.00..4.00 rows=200 width=17) (actual time=0.413..0.414 rows=200.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 19kB
+                          Buffers: shared hit=2
+                          ->  Seq Scan on accounts a  (cost=0.00..4.00 rows=200 width=17) (actual time=0.339..0.356 rows=200.00 loops=1)
+                                Buffers: shared hit=2
+              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.102..0.102 rows=449.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 31kB
+                    Buffers: shared hit=4
+                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.013..0.041 rows=449.00 loops=1)
+                          Buffers: shared hit=4
+        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.025..0.025 rows=13.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.016..0.017 rows=13.00 loops=1)
+                    Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=47
+Planning Time: 0.782 ms
+Execution Time: 1.326 ms

@@ -1,0 +1,256 @@
+-- params: (Int4(748), datetime.datetime(2025, 4, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2025, 12, 1, 0, 0, tzinfo=datetime.timezone.utc))
+Sort  (cost=220.11..222.18 rows=825 width=102) (actual time=3.801..3.880 rows=764.00 loops=1)
+  Sort Key: t.txn_ts
+  Sort Method: quicksort  Memory: 116kB
+  Buffers: shared hit=128
+  ->  Hash Join  (cost=78.11..180.15 rows=825 width=102) (actual time=1.189..3.431 rows=764.00 loops=1)
+        Hash Cond: (v.category_id = c.category_id)
+        Buffers: shared hit=128
+        ->  Hash Join  (cost=76.82..175.99 rows=825 width=94) (actual time=1.124..3.168 rows=764.00 loops=1)
+              Hash Cond: (t.vendor_id = v.vendor_id)
+              Buffers: shared hit=127
+              ->  Hash Join  (cost=62.72..159.70 rows=825 width=85) (actual time=0.911..2.715 rows=764.00 loops=1)
+                    Hash Cond: (t.account_id = a.account_id)
+                    Buffers: shared hit=123
+                    ->  Custom Scan (ChunkAppend) on transactions t  (cost=2.72..97.63 rows=789 width=76) (actual time=0.068..1.676 rows=764.00 loops=1)
+                          Order: t.txn_ts
+                          Buffers: shared hit=108
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1119_chunk t_1  (cost=2.72..2.72 rows=22 width=76) (actual time=0.066..0.073 rows=7.00 loops=1)
+                                Vectorized Filter: ((txn_ts >= '2025-04-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                Rows Removed by Filter: 15
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1119_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1119_chunk_compressed  (cost=0.28..2.50 rows=1 width=248) (actual time=0.032..0.035 rows=1.00 loops=1)
+                                      Index Cond: ((client_id = 748) AND (_ts_meta_v2_first_txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone) AND (_ts_meta_v2_last_txn_ts >= '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1120_chunk t_2  (cost=2.70..2.70 rows=21 width=76) (actual time=0.044..0.050 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1120_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1120_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.020..0.021 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1121_chunk t_3  (cost=2.71..2.71 rows=22 width=76) (actual time=0.033..0.038 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1121_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1121_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.016..0.016 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1122_chunk t_4  (cost=2.70..2.70 rows=21 width=76) (actual time=0.045..0.049 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1122_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1122_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.018..0.018 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1123_chunk t_5  (cost=2.72..2.72 rows=23 width=76) (actual time=0.048..0.054 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1123_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1123_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.027..0.028 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1124_chunk t_6  (cost=2.71..2.71 rows=22 width=76) (actual time=0.041..0.045 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1124_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1124_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.020..0.020 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1125_chunk t_7  (cost=2.70..2.70 rows=21 width=76) (actual time=0.031..0.035 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1125_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1125_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.014..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1126_chunk t_8  (cost=2.71..2.71 rows=22 width=76) (actual time=0.068..0.073 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1126_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1126_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.016..0.016 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1127_chunk t_9  (cost=2.72..2.72 rows=23 width=76) (actual time=0.032..0.037 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1127_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1127_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1128_chunk t_10  (cost=2.71..2.71 rows=22 width=76) (actual time=0.028..0.032 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1128_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1128_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.012..0.013 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1129_chunk t_11  (cost=2.70..2.70 rows=21 width=76) (actual time=0.032..0.036 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1129_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1129_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.013 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1130_chunk t_12  (cost=2.71..2.71 rows=22 width=76) (actual time=0.030..0.033 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1130_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1130_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.015..0.015 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1131_chunk t_13  (cost=2.72..2.72 rows=23 width=76) (actual time=0.028..0.033 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1131_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1131_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.011..0.012 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1132_chunk t_14  (cost=2.71..2.71 rows=22 width=76) (actual time=0.031..0.035 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1132_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1132_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1133_chunk t_15  (cost=2.70..2.70 rows=21 width=76) (actual time=0.029..0.034 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1133_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1133_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.013 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1134_chunk t_16  (cost=2.71..2.71 rows=22 width=76) (actual time=0.028..0.033 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1134_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1134_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.012..0.012 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1135_chunk t_17  (cost=2.70..2.70 rows=21 width=76) (actual time=0.042..0.047 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1135_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1135_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.023..0.024 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1136_chunk t_18  (cost=2.72..2.72 rows=23 width=76) (actual time=0.035..0.040 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1136_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1136_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.016..0.016 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1137_chunk t_19  (cost=2.71..2.71 rows=22 width=76) (actual time=0.026..0.031 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1137_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1137_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.011..0.012 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1138_chunk t_20  (cost=2.70..2.70 rows=21 width=76) (actual time=0.039..0.043 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1138_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1138_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.020..0.020 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1139_chunk t_21  (cost=2.71..2.71 rows=22 width=76) (actual time=0.030..0.034 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1139_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1139_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.014..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1140_chunk t_22  (cost=2.72..2.72 rows=23 width=76) (actual time=0.032..0.036 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1140_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1140_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.016..0.016 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1141_chunk t_23  (cost=2.71..2.71 rows=22 width=76) (actual time=0.053..0.059 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1141_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1141_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.037..0.037 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1142_chunk t_24  (cost=2.70..2.70 rows=21 width=76) (actual time=0.031..0.035 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1142_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1142_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.015..0.015 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1143_chunk t_25  (cost=2.71..2.71 rows=22 width=76) (actual time=0.036..0.040 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1143_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1143_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.017..0.017 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1144_chunk t_26  (cost=2.70..2.70 rows=21 width=76) (actual time=0.040..0.044 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1144_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1144_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1145_chunk t_27  (cost=2.73..2.73 rows=24 width=76) (actual time=0.029..0.034 rows=24.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1145_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1145_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.011..0.012 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1146_chunk t_28  (cost=2.70..2.70 rows=21 width=76) (actual time=0.030..0.035 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1146_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1146_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.014..0.015 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1147_chunk t_29  (cost=2.71..2.71 rows=22 width=76) (actual time=0.037..0.042 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1147_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1147_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.018..0.019 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1148_chunk t_30  (cost=2.70..2.70 rows=21 width=76) (actual time=0.035..0.040 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1148_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1148_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1149_chunk t_31  (cost=2.72..2.72 rows=23 width=76) (actual time=0.034..0.039 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1149_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1149_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.017..0.018 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1150_chunk t_32  (cost=2.71..2.71 rows=22 width=76) (actual time=0.036..0.044 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1150_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1150_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.013..0.014 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1151_chunk t_33  (cost=2.70..2.70 rows=21 width=76) (actual time=0.041..0.045 rows=21.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1151_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1151_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.018..0.018 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1152_chunk t_34  (cost=2.71..2.71 rows=22 width=76) (actual time=0.040..0.044 rows=22.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1152_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1152_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.015..0.016 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1153_chunk t_35  (cost=2.72..2.72 rows=23 width=76) (actual time=0.044..0.050 rows=23.00 loops=1)
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1153_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1153_chunk_compressed  (cost=0.28..2.49 rows=1 width=248) (actual time=0.017..0.018 rows=1.00 loops=1)
+                                      Index Cond: (client_id = 748)
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                          ->  Custom Scan (ColumnarScan) on _hyper_54_1154_chunk t_36  (cost=2.72..2.72 rows=22 width=76) (actual time=0.088..0.092 rows=12.00 loops=1)
+                                Vectorized Filter: ((txn_ts >= '2025-04-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                Rows Removed by Filter: 10
+                                Buffers: shared hit=3
+                                ->  Index Scan using _hyper_54_1154_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_54_1154_chunk_compressed  (cost=0.28..2.50 rows=1 width=248) (actual time=0.061..0.061 rows=1.00 loops=1)
+                                      Index Cond: ((client_id = 748) AND (_ts_meta_v2_first_txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone) AND (_ts_meta_v2_last_txn_ts >= '2025-04-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 1
+                                      Buffers: shared hit=3
+                    ->  Hash  (cost=35.00..35.00 rows=2000 width=17) (actual time=0.821..0.821 rows=2000.00 loops=1)
+                          Buckets: 2048  Batches: 1  Memory Usage: 118kB
+                          Buffers: shared hit=15
+                          ->  Seq Scan on accounts a  (cost=0.00..35.00 rows=2000 width=17) (actual time=0.025..0.263 rows=2000.00 loops=1)
+                                Buffers: shared hit=15
+              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.191..0.191 rows=449.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 31kB
+                    Buffers: shared hit=4
+                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.021..0.077 rows=449.00 loops=1)
+                          Buffers: shared hit=4
+        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.051..0.051 rows=13.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.026..0.029 rows=13.00 loops=1)
+                    Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=373
+Planning Time: 7.360 ms
+Execution Time: 5.814 ms

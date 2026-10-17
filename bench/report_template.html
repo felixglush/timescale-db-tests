@@ -1,0 +1,476 @@
+<title>Compressing Bank Transactions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column (lab notebook) with full-width figure panels; figures are the anchors, prose explains them. */
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #14181f; --ink-2: #4a5160; --ink-3: #7a8191;
+  --rule: #dde1e8; --grid: #e8ebf0; --accent: #2a78d6; --accent-soft: #e3eefb; --other: #cfd5de;
+  --s-plain: #2a78d6; --s-clustered: #eb6834; --s-hyper: #1baf7a; --s-c7: #eda100; --s-c30: #e87ba4; --s-c90: #008300;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12151b; --panel: #1a1e26; --ink: #eef0f4; --ink-2: #b7bdc9; --ink-3: #8a91a0;
+  --rule: #2c323d; --grid: #262b35; --accent: #3987e5; --accent-soft: #1d2b40; --other: #3a414d;
+  --s-plain: #3987e5; --s-clustered: #d95926; --s-hyper: #199e70; --s-c7: #c98500; --s-c30: #d55181; --s-c90: #2f9a2f;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12151b; --panel: #1a1e26; --ink: #eef0f4; --ink-2: #b7bdc9; --ink-3: #8a91a0;
+  --rule: #2c323d; --grid: #262b35; --accent: #3987e5; --accent-soft: #1d2b40; --other: #3a414d;
+  --s-plain: #3987e5; --s-clustered: #d95926; --s-hyper: #199e70; --s-c7: #c98500; --s-c30: #d55181; --s-c90: #2f9a2f;
+  color-scheme: dark; }
+
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 40px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-weight: 650; text-wrap: balance; line-height: 1.15; margin: 0; }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.7rem; margin-top: 64px; }
+h3 { font-size: 1.15rem; font-family: var(--body); font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.prose { display: grid; gap: 14px; margin-top: 14px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.lede { font-size: 1.15rem; color: var(--ink-2); margin-top: 16px; }
+.meta { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); margin-top: 18px; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 32px; }
+.tile { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 4px; align-content: start; }
+.tile .num { font-family: var(--display); font-size: 2.3rem; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+.tile .lbl { font-size: 13.5px; color: var(--ink-2); line-height: 1.4; }
+.tile .src { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; padding: 20px; margin-top: 22px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px 20px; margin-bottom: 12px; }
+.panel-head p { font-size: 14px; color: var(--ink-2); }
+.caption { font-size: 13.5px; color: var(--ink-2); margin-top: 10px; max-width: 80ch; }
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 3px; }
+.seg button { font: 500 13px var(--body); color: var(--ink-2); background: transparent; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; min-width: 560px; }
+.chart text { fill: var(--ink-2); font-family: var(--body); font-size: 12px; }
+.chart .val { fill: var(--ink); font-family: var(--mono); font-size: 11.5px; }
+.chart .gridline { stroke: var(--grid); }
+.chart .axis { stroke: var(--rule); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font: 12.5px/1.45 var(--body); padding: 7px 10px; border-radius: 6px; max-width: 260px; z-index: 20; }
+.tip b { font-weight: 600; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.layout-fig h3 { margin-bottom: 4px; }
+.layout-fig .sub { font-size: 13.5px; color: var(--ink-2); margin-bottom: 10px; }
+.layout-fig svg { width: 100%; height: auto; display: block; }
+.stat { font-family: var(--mono); font-size: 13px; color: var(--ink); margin-top: 8px; }
+
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.step { border-top: 3px solid var(--accent); padding-top: 10px; display: grid; gap: 6px; align-content: start; }
+.step .k { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.step p { font-size: 14px; color: var(--ink-2); }
+
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-weight: 600; color: var(--ink-2); font-size: 12.5px; }
+.tablewrap { overflow-x: auto; }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 7px; vertical-align: 0; }
+
+ol.findings { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 14px; counter-reset: f; }
+ol.findings li { counter-increment: f; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; }
+ol.findings li::before { content: counter(f); font-family: var(--display); font-weight: 650; font-size: 1.4rem; color: var(--accent); line-height: 1.1; }
+ol.findings b { display: block; }
+ol.findings span { color: var(--ink-2); font-size: 15px; }
+
+.runs { display: grid; gap: 10px; margin-top: 16px; }
+.run { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.run .tag { font-family: var(--mono); font-size: 12.5px; color: var(--ink-3); }
+.run .tag b { display: block; color: var(--ink); font-size: 14px; }
+.run p { font-size: 14.5px; color: var(--ink-2); }
+.pill { display: inline-block; font: 500 11px var(--mono); padding: 1px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: 1px; }
+.pill.warn { background: color-mix(in srgb, var(--s-c7) 18%, transparent); color: var(--ink-2); }
+ul.plain { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px; color: var(--ink-2); max-width: 75ch; }
+
+@media (max-width: 760px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .run { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+@media (prefers-reduced-motion: no-preference) { .chart rect.bar { transition: height .25s ease, y .25s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Experiment log · TimescaleDB on Postgres</div>
+    <h1>Compressing Bank Transactions</h1>
+    <p class="lede">Does TimescaleDB make per-client statement queries over checking and Visa transactions faster or smaller, and does that change as the number of clients grows? We compared six storage layouts for the same data at 100, 1,000 and 10,000 clients.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Headline results"></section>
+
+  <h2>Why compression is faster here</h2>
+  <div class="prose">
+    <p>A statement query reads one client's rows for a date range. Its cost is mostly the number of 8&nbsp;KB pages Postgres has to read. On a cold cache, every page is a disk read.</p>
+    <p>Transactions arrive in time order, interleaved across all clients, so an ordinary table stores them that way. At 10,000 clients, the roughly 73 rows on one page belong to about 73 different clients. One client's month of 95 transactions ends up on about 95 different pages. Compression rewrites each closed chunk grouped by <code>client_id</code>, so the same month becomes a single compressed batch that spans one or two pages.</p>
+  </div>
+  <div class="panel two" id="layout">
+    <div class="layout-fig">
+      <h3>Plain table: arrival order</h3>
+      <div class="sub">Each square is a row; each column of squares is an 8 KB page. Blue rows belong to one client.</div>
+      <svg id="fig-heap" viewBox="0 0 440 190" role="img" aria-label="Rows of one client scattered across many heap pages"></svg>
+      <div class="stat" id="stat-heap"></div>
+    </div>
+    <div class="layout-fig">
+      <h3>Compressed chunk: grouped by client</h3>
+      <div class="sub">One batch per client per chunk, stored as compressed column arrays.</div>
+      <svg id="fig-cmp" viewBox="0 0 440 190" role="img" aria-label="One client's rows packed into a single compressed batch"></svg>
+      <div class="stat" id="stat-cmp"></div>
+    </div>
+  </div>
+  <p class="caption">Schematic. The measured counts underneath come from the 10,000-client cold runs (Q4: 10 clients over 1 to 12 months).</p>
+
+  <div class="prose">
+    <p>Two effects stack up. <b>Locality</b>: a client's rows are adjacent, so a query reads a few pages instead of one page per row. <b>Size</b>: the batches are 3 to 4 times smaller than the rows they replace. Locality is the bigger effect. A plain table physically re-sorted by <code>(client_id, txn_ts)</code> (<span class="mono">plain_clustered</span>) reads about as few pages as compression does, but it stays sorted only until new rows arrive. Compression re-applies the grouping to every chunk as its time window closes.</p>
+    <p>With everything already in memory there is no disk to save. Visiting about 95 cached pages costs about as much CPU as decompressing one batch, so the layouts tie on small queries. On a tiny table (100 clients, 19 MB), read-ahead pulls in neighbouring pages almost for free, and compression doesn't help either.</p>
+  </div>
+
+  <h2>How TimescaleDB compression works</h2>
+  <div class="steps">
+    <div class="step"><span class="k">1 · chunk</span><h3>Split by time</h3><p>A hypertable stores rows in chunks, one per time window (7, 30 or 90 days here). Each chunk is compressed on its own.</p></div>
+    <div class="step"><span class="k">2 · segment</span><h3>Group and sort</h3><p>Rows are grouped by <code>segmentby = client_id</code>, sorted by <code>orderby = txn_ts</code>, and cut into batches of up to 1,000 rows.</p></div>
+    <div class="step"><span class="k">3 · pivot</span><h3>One row per batch</h3><p>Each batch becomes one row holding a compressed array per column, plus metadata: the client, the row count, and the first and last timestamps.</p></div>
+    <div class="step"><span class="k">4 · encode</span><h3>Lossless codecs</h3><p>Delta-of-delta and bit packing for integers and timestamps, dictionaries for repeated values, and LZ-style compression for text. Every value comes back exactly as stored.</p></div>
+  </div>
+  <div class="prose">
+    <p>Queries read compressed chunks through an index on <code>(client_id, first_txn_ts, last_txn_ts)</code>. It finds just the batches for the requested clients and date range, decompresses them, and then filters by date. The trade-off is CPU on read, and slower updates or inserts into chunks that are already compressed. The usual pattern is to compress a chunk once its window has closed.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Compressed bytes per row, by column</h3>
+      <p>Measured on one chunk at 10,000 clients. Raw heap row ≈ 104 bytes.</p>
+    </div>
+    <div class="chart" id="chart-cols"></div>
+    <div class="legend" id="legend-cols"></div>
+    <p class="caption">Bigger chunks give each client more rows per batch: 22 at 7 days, 94 at 30 days, 282 at 90 days. More rows per batch means the per-batch overhead is shared more widely and the codecs have more to work with. The free-text description and the randomly timed <code>txn_ts</code> are what's left.</p>
+  </div>
+
+  <h2>Results</h2>
+  <div class="prose"><p>Every layout holds identical rows, loaded in arrival order, with the same indexes: <code>(client_id, txn_ts)</code> and the primary key. "Cold" means Postgres's shared buffers and the OS page cache were emptied before <em>each</em> query. "Warm" means the data was already in memory.</p></div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Storage</h3>
+      <div class="seg" id="seg-storage-scale" role="group" aria-label="Client count"></div>
+    </div>
+    <div class="chart" id="chart-storage"></div>
+    <div class="legend"><span><i style="background:var(--ink-2)"></i>heap</span><span><i style="background:var(--ink-2);opacity:.55"></i>toast (compressed batches)</span><span><i style="background:var(--ink-2);opacity:.25"></i>indexes</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Query latency by layout</h3>
+      <div class="controls">
+        <div class="seg" id="seg-q" role="group" aria-label="Query"></div>
+        <div class="seg" id="seg-metric" role="group" aria-label="Metric"></div>
+        <div class="seg" id="seg-lat-scale" role="group" aria-label="Client count"></div>
+      </div>
+    </div>
+    <p class="caption" id="q-desc" style="margin:0 0 6px"></p>
+    <div class="chart" id="chart-lat"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h3>As the client count grows</h3>
+      <div class="controls">
+        <div class="seg" id="seg-q2" role="group" aria-label="Query"></div>
+        <div class="seg" id="seg-metric2" role="group" aria-label="Metric"></div>
+      </div>
+    </div>
+    <div class="chart" id="chart-scale"></div>
+    <div class="legend" id="legend-scale"></div>
+    <p class="caption">Log scales. The plain table's cold cost grows with the table because more clients get interleaved between one client's rows. Compressed layouts stay nearly flat.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>10,000 clients at a glance</h3><p>Server execution time, median (ms)</p></div>
+    <div class="tablewrap"><table id="table-10k"></table></div>
+  </div>
+
+  <h2>Findings</h2>
+  <ol class="findings">
+    <li><div><b>Compression wins once data comes from disk, and the gap grows with the number of clients.</b><span>At 10,000 clients with a cold cache, 90-day compressed chunks are 3.6 to 8 times faster than a plain table. Q4 reads 174 pages instead of 6,165.</span></div></li>
+    <li><div><b>A hypertable on its own changes nothing for these queries.</b><span>Its size and latency match a plain table. The <code>(client_id, txn_ts)</code> index already narrows the search, so splitting by time has nothing left to skip. Hypertables pay off for retention and fleet-wide time queries.</span></div></li>
+    <li><div><b>With data in memory, the layouts are close.</b><span>Q1 to Q3 take under 4 ms everywhere. Compressed is about 25% faster on the larger Q4.</span></div></li>
+    <li><div><b>Locality does most of the work.</b><span>A one-off <code>CLUSTER</code> reads as few pages as compression, but it decays as new rows arrive. Compression keeps the layout as data grows and shrinks it 4 times.</span></div></li>
+    <li><div><b>Chunk interval is the main tuning knob.</b><span>TimescaleDB's default of 7 days leaves about 22 rows per client batch: half the compression of 30 days, and the slowest compressed layout. 90 days was best on both size and speed.</span></div></li>
+    <li><div><b>Bind client ids as integers.</b><span>When a prepared statement received a <code>smallint[]</code> parameter, the cached plan couldn't use the compressed index and decompressed every client in the date range, about 6 times slower.</span></div></li>
+  </ol>
+
+  <h2>How it was measured</h2>
+  <ul class="plain">
+    <li>PostgreSQL <span id="pgv"></span> with TimescaleDB <span id="tsv"></span> in Docker, tuned for 4 GB and 4 CPUs, with JIT and parallel workers off. Host: 4 vCPU and 16 GB RAM.</li>
+    <li>Synthetic data: 3 purchases per client per day (60% Visa), payroll twice a month, and a monthly card payment, for 1,143 rows per client per year. Each client has one checking and one Visa account, plus vendors and categories.</li>
+    <li>Queries: Q1 is one client for one month. Q2 is one client for 1 to 12 months. Q3 is 10 clients for one month. Q4 is 10 clients for 1 to 12 months. Random parameters, the same sequence for every layout.</li>
+    <li>Warm: 200 runs per query after 20 warm-up runs. Cold: 25 runs per query, with caches emptied before each one. Times are server execution from <code>EXPLAIN ANALYZE</code>.</li>
+    <li>Limits: the <span class="mono">plain_clustered</span> layout was measured right after a one-off <code>CLUSTER</code>. Postgres does not keep that order, so new rows land in arrival order and its advantage decays. Re-sorting rewrites the whole table and blocks reads and writes while it runs (67 s for indexes plus <code>CLUSTER</code> at 10,000 clients, against 18 s for plain's indexes). Treat it as a best case, not a production option.</li>
+    <li>Limits: one connection and no concurrent inserts. 10,000 clients was the largest scale the disk could hold for six copies of the data.</li>
+  </ul>
+
+  <h2>Run history</h2>
+  <div class="runs">
+    <div class="run"><div class="tag"><b>Run 0</b>smoke test</div><p>Fixed the Docker setup (the image's own init scripts and the PG18 data path) and checked that every layout uses the client and date index.</p></div>
+    <div class="run"><div class="tag"><b>Run 1</b>aborted</div><p>Masked account numbers collided at 10,000 clients, so I dropped the bad uniqueness constraint. Page counts were also being inflated by the join to accounts, so from run 2 on only the transactions scans are counted.</p></div>
+    <div class="run"><div class="tag"><b>Run 2</b>complete</div><p>Found that a <code>smallint[]</code> parameter disables the compressed index in cached plans. The benchmark now binds ids as integers.</p></div>
+    <div class="run"><div class="tag"><b>Run 3</b><span class="pill warn">cold biased</span></div><p>Caches were emptied only once per layout, so later queries reused cached pages. A code review flagged this.</p></div>
+    <div class="run"><div class="tag"><b>Run 4</b><span class="pill">reported</span></div><p>Caches are emptied before every cold query, and the run aborts if they can't be. Plain-table cold times roughly doubled while compressed barely moved, so the gap is larger than run 3 showed.</p></div>
+  </div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const V = ["plain", "plain_clustered", "hyper", "cmp_7d", "cmp_30d", "cmp_90d"];
+const VCOL = { plain: "--s-plain", plain_clustered: "--s-clustered", hyper: "--s-hyper", cmp_7d: "--s-c7", cmp_30d: "--s-c30", cmp_90d: "--s-c90" };
+const VDESC = { plain: "Ordinary heap table", plain_clustered: "Heap table re-sorted by client and date once after load", hyper: "Hypertable, 30-day chunks, not compressed",
+  cmp_7d: "Compressed hypertable, 7-day chunks (TimescaleDB default)", cmp_30d: "Compressed hypertable, 30-day chunks", cmp_90d: "Compressed hypertable, 90-day chunks" };
+const Q = { Q1_client_month: ["Q1", "1 client, 1 month"], Q2_client_range: ["Q2", "1 client, 1–12 months"],
+  Q3_clients_month: ["Q3", "10 clients, 1 month"], Q4_clients_range: ["Q4", "10 clients, 1–12 months"] };
+const METRICS = { cold: ["Cold ms", "exec_p50_ms", "cold", "ms, median"], warm: ["Warm ms", "exec_p50_ms", "warm", "ms, median"], reads: ["Pages read", "avg_shared_read", "cold", "8 KB pages read from disk, cold, average"] };
+const css = (v) => `var(${v})`;
+const col = (v) => `var(${VCOL[v]})`;
+const fmt = (x) => x === 0 ? "0" : x >= 100 ? Math.round(x).toLocaleString("en-US") : x >= 10 ? x.toFixed(1) : x >= 1 ? x.toFixed(1) : x.toFixed(2);
+const SC = DATA.scales, TOP = SC[SC.length - 1];
+const L = (c, v, q, m) => DATA.lat[`${c}|${v}|${q}|${m}`];
+const S = (c, v) => DATA.sizes[`${c}|${v}`];
+const NS = "http://www.w3.org/2000/svg";
+/* fill/stroke given as var(--token) go through style, so colours follow the theme live. */
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag); let st = attrs.style || "";
+  for (const k in attrs) {
+    const v = String(attrs[k]);
+    if (k === "style") continue;
+    if ((k === "fill" || k === "stroke") && v.startsWith("var(")) st += `;${k}:${v}`; else e.setAttribute(k, v);
+  }
+  if (st) e.setAttribute("style", st);
+  if (parent) parent.appendChild(e); return e;
+}
+
+const tip = document.getElementById("tip");
+function showTip(ev, html) { tip.innerHTML = html; tip.hidden = false; moveTip(ev); }
+function moveTip(ev) { const w = tip.offsetWidth, x = Math.min(ev.clientX + 14, innerWidth - w - 8); tip.style.left = x + "px"; tip.style.top = (ev.clientY + 14) + "px"; }
+function hideTip() { tip.hidden = true; }
+function hover(node, html) { node.addEventListener("pointerenter", (e) => showTip(e, html)); node.addEventListener("pointermove", moveTip); node.addEventListener("pointerleave", hideTip); }
+
+function segmented(id, options, initial, onChange) {
+  const box = document.getElementById(id); let cur = initial;
+  for (const [key, label] of options) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.setAttribute("aria-pressed", key === cur);
+    b.addEventListener("click", () => { cur = key; box.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b)); onChange(key); });
+    box.appendChild(b);
+  }
+  return () => cur;
+}
+
+function niceMax(m) { const p = Math.pow(10, Math.floor(Math.log10(m))); for (const k of [1, 2, 2.5, 3, 4, 5, 10]) if (k * p >= m) return k * p; return 10 * p; }
+
+/* Vertical bars, one per layout, value labelled on every bar. */
+function bars(container, items, unit) {
+  container.innerHTML = "";
+  const W = 900, H = 300, m = { l: 56, r: 12, t: 22, b: 46 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": unit }, container);
+  const max = niceMax(Math.max(...items.map((d) => d.total)) * 1.08);
+  const y = (v) => m.t + (H - m.t - m.b) * (1 - v / max);
+  const nt = [3, 4].includes(max / Math.pow(10, Math.floor(Math.log10(max)))) ? max / Math.pow(10, Math.floor(Math.log10(max))) : 5;
+  for (let i = 0; i <= nt; i++) {
+    const v = (max / nt) * i, yy = y(v);
+    el("line", { x1: m.l, x2: W - m.r, y1: yy, y2: yy, class: i ? "gridline" : "axis" }, svg);
+    el("text", { x: m.l - 8, y: yy + 4, "text-anchor": "end" }, svg).textContent = Number.isInteger(v) ? v.toLocaleString("en-US") : fmt(v);
+  }
+  el("text", { x: 0, y: 12 }, svg).textContent = unit;
+  const bw = (W - m.l - m.r) / items.length;
+  items.forEach((d, i) => {
+    const x = m.l + i * bw + bw * 0.14, w = bw * 0.72; let acc = 0;
+    d.parts.forEach((p) => {
+      if (p.v <= 0) return;
+      const y0 = y(acc + p.v), h = y(acc) - y(acc + p.v);
+      const r = el("rect", { x, y: y0, width: w, height: Math.max(h, 0.5), rx: acc === 0 ? 0 : 0, fill: col(d.v), "fill-opacity": p.o ?? 1, stroke: css("--panel"), "stroke-width": 1.5, class: "bar" }, svg);
+      hover(r, `<b>${d.v}</b><br>${VDESC[d.v]}<br>${p.label ? p.label + ": " : ""}${fmt(p.v)} ${p.unit || ""}`);
+      acc += p.v;
+    });
+    el("text", { x: x + w / 2, y: y(d.total) - 6, "text-anchor": "middle", class: "val" }, svg).textContent = d.label;
+    const t = el("text", { x: x + w / 2, y: H - m.b + 18, "text-anchor": "middle" }, svg); t.textContent = d.v;
+    const hit = el("rect", { x: x - bw * 0.1, y: m.t, width: w + bw * 0.2, height: H - m.t - m.b, fill: "transparent" }, svg);
+    hover(hit, `<b>${d.v}</b><br>${VDESC[d.v]}<br>${d.tip}`);
+  });
+}
+
+/* Log-log lines over client count. */
+function lines(container, series, unit) {
+  container.innerHTML = "";
+  const W = 900, H = 320, m = { l: 60, r: 120, t: 22, b: 40 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": unit }, container);
+  const all = series.flatMap((s) => s.values).filter((v) => v > 0);
+  const lo = Math.pow(10, Math.floor(Math.log10(Math.min(...all)))), hi = Math.pow(10, Math.ceil(Math.log10(Math.max(...all))));
+  const x = (c) => m.l + (W - m.l - m.r) * (Math.log10(c) - Math.log10(SC[0])) / (Math.log10(TOP) - Math.log10(SC[0]));
+  const y = (v) => m.t + (H - m.t - m.b) * (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo)));
+  for (let p = lo; p <= hi * 1.001; p *= 10) {
+    el("line", { x1: m.l, x2: W - m.r, y1: y(p), y2: y(p), class: "gridline" }, svg);
+    el("text", { x: m.l - 8, y: y(p) + 4, "text-anchor": "end" }, svg).textContent = fmt(p);
+  }
+  SC.forEach((c) => { el("line", { x1: x(c), x2: x(c), y1: m.t, y2: H - m.b, class: "gridline" }, svg); el("text", { x: x(c), y: H - m.b + 20, "text-anchor": "middle" }, svg).textContent = c.toLocaleString("en-US") + " clients"; });
+  el("text", { x: 0, y: 12 }, svg).textContent = unit;
+  const ends = [];
+  series.forEach((s) => {
+    const pts = s.values.map((v, i) => [x(SC[i]), y(Math.max(v, lo))]);
+    el("polyline", { points: pts.map((p) => p.join(",")).join(" "), fill: "none", stroke: col(s.v), "stroke-width": 2.25, "stroke-linejoin": "round" }, svg);
+    pts.forEach((p, i) => {
+      el("circle", { cx: p[0], cy: p[1], r: 4.5, fill: col(s.v), stroke: css("--panel"), "stroke-width": 2 }, svg);
+      const hit = el("circle", { cx: p[0], cy: p[1], r: 12, fill: "transparent" }, svg);
+      hover(hit, `<b>${s.v}</b> · ${SC[i].toLocaleString("en-US")} clients<br>${fmt(s.values[i])} ${unit.split(",")[0]}`);
+    });
+    ends.push({ v: s.v, y: pts[pts.length - 1][1] });
+  });
+  ends.sort((a, b) => a.y - b.y); let last = -1e9;
+  ends.forEach((e) => { const yy = Math.max(e.y, last + 14); last = yy; el("text", { x: W - m.r + 10, y: yy + 4, style: `fill:${col(e.v)};font-weight:600` }, svg).textContent = e.v; });
+}
+
+function legend(id, keys) { const box = document.getElementById(id); box.innerHTML = ""; keys.forEach((k) => { box.insertAdjacentHTML("beforeend", `<span><i style="background:${col(k)}"></i>${k}</span>`); }); }
+
+/* Header + tiles */
+document.getElementById("meta").innerHTML = [`PostgreSQL ${DATA.pg}`, `TimescaleDB ${DATA.ts}`, `${DATA.rowsTop.toLocaleString("en-US")} rows at ${TOP.toLocaleString("en-US")} clients`, `run ${DATA.started.slice(0, 10)}`].map((s) => `<span>${s}</span>`).join("");
+document.getElementById("pgv").textContent = DATA.pg; document.getElementById("tsv").textContent = DATA.ts;
+const plainB = S(TOP, "plain").total, c90B = S(TOP, "cmp_90d").total;
+const q4p = L(TOP, "plain", "Q4_clients_range", "cold"), q4c = L(TOP, "cmp_90d", "Q4_clients_range", "cold");
+const q4wp = L(TOP, "plain", "Q4_clients_range", "warm"), q4wc = L(TOP, "cmp_90d", "Q4_clients_range", "warm");
+const tiles = [
+  [`${(plainB / c90B).toFixed(1)}×`, "smaller with compression (90-day chunks)", `${Math.round(plainB / 2 ** 20).toLocaleString("en-US")} MB → ${Math.round(c90B / 2 ** 20)} MB`],
+  [`${(q4p.exec_p50_ms / q4c.exec_p50_ms).toFixed(0)}×`, "faster cold, 10 clients × 1–12 months (Q4)", `${fmt(q4p.exec_p50_ms)} ms → ${fmt(q4c.exec_p50_ms)} ms`],
+  [`${Math.round(q4p.avg_shared_read / q4c.avg_shared_read)}×`, "fewer pages read from disk (Q4, cold)", `${q4p.avg_shared_read.toLocaleString("en-US")} → ${q4c.avg_shared_read} pages`],
+  [`${(q4wp.exec_p50_ms / q4wc.exec_p50_ms).toFixed(1)}×`, "faster with data already in memory (Q4, warm)", `${fmt(q4wp.exec_p50_ms)} ms → ${fmt(q4wc.exec_p50_ms)} ms`],
+];
+document.getElementById("tiles").innerHTML = tiles.map(([n, l, s]) => `<div class="tile"><span class="num">${n}</span><span class="lbl">${l}</span><span class="src">${s} · ${TOP.toLocaleString("en-US")} clients</span></div>`).join("");
+
+/* Layout diagrams */
+(function () {
+  const heap = document.getElementById("fig-heap"), cmp = document.getElementById("fig-cmp");
+  const pages = 12, slots = 8, cw = 26, ch = 16, gx = 10, top = 14;
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const target = new Set(); while (target.size < 9) target.add(Math.floor(rnd() * pages * slots));
+  const hit = new Set();
+  for (let p = 0; p < pages; p++) {
+    const x = 6 + p * (cw + gx);
+    el("rect", { x: x - 3, y: top - 3, width: cw + 6, height: slots * (ch + 3) + 3, rx: 4, fill: "none", stroke: css("--rule") }, heap);
+    for (let s = 0; s < slots; s++) {
+      const i = p * slots + s, isT = target.has(i); if (isT) hit.add(p);
+      el("rect", { x, y: top + s * (ch + 3), width: cw, height: ch, rx: 2, fill: isT ? css("--accent") : css("--other"), "fill-opacity": isT ? 1 : 0.55 + 0.45 * rnd() }, heap);
+    }
+  }
+  hit.forEach((p) => { el("text", { x: 6 + p * (cw + gx) + cw / 2, y: 185, "text-anchor": "middle", style: `fill:${css("--accent")};font:600 11px var(--mono)` }, heap).textContent = "read"; });
+  const bx = 18, by = 20, bwid = 404;
+  const cols = ["txn_ts", "amount", "vendor_id", "description"];
+  el("rect", { x: bx, y: by, width: bwid, height: 26, rx: 4, fill: css("--accent") }, cmp);
+  el("text", { x: bx + 10, y: by + 17, style: `fill:${css("--panel")};font:600 12px var(--mono)` }, cmp).textContent = "client 4187 · Mar 2025 · 94 rows · first/last ts";
+  cols.forEach((c, i) => {
+    const y = by + 34 + i * 26;
+    el("rect", { x: bx, y, width: bwid, height: 22, rx: 3, fill: css("--accent"), "fill-opacity": 0.28 }, cmp);
+    el("text", { x: bx + 10, y: y + 15, style: `fill:${css("--ink")};font:12px var(--mono)` }, cmp).textContent = `${c}: [compressed array]`;
+  });
+  for (let i = 0; i < 5; i++) el("rect", { x: bx + i * 82, y: 158, width: 76, height: 14, rx: 3, fill: css("--other"), "fill-opacity": 0.7 }, cmp);
+  el("text", { x: bx, y: 186, style: `fill:${css("--ink-3")};font:11px var(--body)` }, cmp).textContent = "other clients' batches are separate rows: not read";
+  const p = L(TOP, "plain", "Q4_clients_range", "cold"), c = L(TOP, "cmp_90d", "Q4_clients_range", "cold");
+  document.getElementById("stat-heap").textContent = `Measured: ${p.avg_rows.toLocaleString("en-US")} rows → ${p.avg_shared_read.toLocaleString("en-US")} pages read`;
+  document.getElementById("stat-cmp").textContent = `Measured (90-day chunks): ${c.avg_rows.toLocaleString("en-US")} rows → ${c.avg_shared_read} pages read`;
+})();
+
+/* Bytes per column */
+(function () {
+  const box = document.getElementById("chart-cols");
+  const W = 900, H = 250, m = { l: 92, r: 50, t: 10, b: 24 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Compressed bytes per row by column" }, box);
+  const cols = Object.keys(DATA.colBytes.cmp_7d), keys = ["cmp_7d", "cmp_30d", "cmp_90d"];
+  const max = 45, x = (v) => m.l + (W - m.l - m.r) * v / max, rowH = (H - m.t - m.b) / cols.length;
+  [0, 10, 20, 30, 40].forEach((v) => { el("line", { x1: x(v), x2: x(v), y1: m.t, y2: H - m.b, class: v ? "gridline" : "axis" }, svg); el("text", { x: x(v), y: H - 6, "text-anchor": "middle" }, svg).textContent = v + " B"; });
+  cols.forEach((cname, i) => {
+    const y0 = m.t + i * rowH;
+    el("text", { x: m.l - 10, y: y0 + rowH / 2 + 4, "text-anchor": "end", style: "font-family:var(--mono)" }, svg).textContent = cname;
+    keys.forEach((k, j) => {
+      const v = DATA.colBytes[k][cname], bh = (rowH - 8) / 3, yy = y0 + 4 + j * bh;
+      const r = el("rect", { x: m.l, y: yy, width: Math.max(x(v) - m.l, 1), height: bh - 1.5, rx: 2, fill: col(k) }, svg);
+      hover(r, `<b>${k}</b> · ${cname}<br>${v} bytes per row`);
+      if (j === 0 || v > 9) el("text", { x: x(v) + 5, y: yy + bh - 3, class: "val" }, svg).textContent = v;
+    });
+  });
+  legend("legend-cols", keys);
+})();
+
+/* Storage */
+(function () {
+  const draw = (c) => bars(document.getElementById("chart-storage"), V.map((v) => {
+    const s = S(c, v), MB = 2 ** 20, ratio = S(c, "plain").total / s.total;
+    return { v, total: s.total / MB, label: `${fmt(s.total / MB)} MB · ${ratio.toFixed(1)}×`,
+      tip: `Total ${fmt(s.total / MB)} MB, ${(s.total / DATA.rows[c]).toFixed(0)} bytes/row<br>${ratio.toFixed(1)}× smaller than plain`,
+      parts: [{ v: s.table / MB, o: 1, label: "heap", unit: "MB" }, { v: s.toast / MB, o: 0.55, label: "toast", unit: "MB" }, { v: s.index / MB, o: 0.25, label: "indexes", unit: "MB" }] };
+  }), `MB at ${c.toLocaleString("en-US")} clients (${DATA.rows[c].toLocaleString("en-US")} rows)`);
+  segmented("seg-storage-scale", SC.map((c) => [c, c.toLocaleString("en-US")]), TOP, draw); draw(TOP);
+})();
+
+/* Latency bars */
+(function () {
+  let q = "Q4_clients_range", mk = "cold", c = TOP;
+  const draw = () => {
+    const [, field, mode, unit] = METRICS[mk];
+    document.getElementById("q-desc").textContent = `${Q[q][0]}: ${Q[q][1]}. About ${L(c, "plain", q, mode).avg_rows.toLocaleString("en-US")} rows returned. ${mk === "reads" ? "Lower is better: each page is a disk read." : "Lower is better."}`;
+    bars(document.getElementById("chart-lat"), V.map((v) => {
+      const r = L(c, v, q, mode), val = r[field];
+      const base = L(c, "plain", q, mode)[field];
+      return { v, total: val, label: fmt(val), parts: [{ v: val, unit: mk === "reads" ? "pages" : "ms" }],
+        tip: mk === "reads" ? `${fmt(val)} pages read per query (cold)<br>${fmt(r.exec_p50_ms)} ms median` :
+          `median ${fmt(r.exec_p50_ms)} ms, p95 ${fmt(r.exec_p95_ms)} ms<br>${(base / val).toFixed(1)}× vs plain`};
+    }), `${unit} · ${c.toLocaleString("en-US")} clients`);
+  };
+  segmented("seg-q", Object.entries(Q).map(([k, [s]]) => [k, s]), q, (k) => { q = k; draw(); });
+  segmented("seg-metric", Object.entries(METRICS).map(([k, [l]]) => [k, l]), mk, (k) => { mk = k; draw(); });
+  segmented("seg-lat-scale", SC.map((s) => [s, s.toLocaleString("en-US")]), c, (k) => { c = k; draw(); });
+  draw();
+})();
+
+/* Scaling lines */
+(function () {
+  let q = "Q4_clients_range", mk = "cold";
+  const draw = () => {
+    const [, field, mode, unit] = METRICS[mk];
+    lines(document.getElementById("chart-scale"), V.map((v) => ({ v, values: SC.map((c) => L(c, v, q, mode)[field]) })), `${unit} · ${Q[q][0]} ${Q[q][1]}`);
+  };
+  segmented("seg-q2", Object.entries(Q).map(([k, [s]]) => [k, s]), q, (k) => { q = k; draw(); });
+  segmented("seg-metric2", Object.entries(METRICS).map(([k, [l]]) => [k, l]), mk, (k) => { mk = k; draw(); });
+  legend("legend-scale", V); draw();
+})();
+
+/* Table */
+(function () {
+  const t = document.getElementById("table-10k");
+  let h = `<thead><tr><th>layout</th><th>size</th>${Object.values(Q).map(([s]) => `<th>${s} warm</th>`).join("")}${Object.values(Q).map(([s]) => `<th>${s} cold</th>`).join("")}</tr></thead><tbody>`;
+  V.forEach((v) => {
+    h += `<tr><td><span class="swatch" style="background:${col(v)}"></span>${v}</td><td>${fmt(S(TOP, v).total / 2 ** 20)} MB</td>`;
+    Object.keys(Q).forEach((q) => { h += `<td>${fmt(L(TOP, v, q, "warm").exec_p50_ms)}</td>`; });
+    Object.keys(Q).forEach((q) => { h += `<td>${fmt(L(TOP, v, q, "cold").exec_p50_ms)}</td>`; });
+    h += "</tr>";
+  });
+  t.innerHTML = h + "</tbody>";
+})();
+</script>

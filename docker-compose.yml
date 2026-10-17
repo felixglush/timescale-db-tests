@@ -1,0 +1,45 @@
+# TimescaleDB (Postgres 18) seeded with synthetic multi-client checking + Visa transactions.
+#
+#   SEED_CLIENTS=100 SEED_YEARS=1 docker compose up -d
+#
+# Seeding only runs on first init of the data volume; `docker compose down -v` to reseed,
+# or call `CALL bench.load_all(clients, years, txns_per_day)` at any time.
+services:
+  db:
+    image: timescale/timescaledb:2.30.2-pg18
+    container_name: tsdb-bench
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bank
+      # Pin timescaledb-tune inputs so results don't depend on the host's RAM/CPU.
+      TS_TUNE_MEMORY: 4GB
+      TS_TUNE_NUM_CPUS: 4
+      SEED_CLIENTS: ${SEED_CLIENTS:-100}
+      SEED_YEARS: ${SEED_YEARS:-1}
+      SEED_TXNS_PER_DAY: ${SEED_TXNS_PER_DAY:-3}
+      SEED_START_DATE: ${SEED_START_DATE:-2025-01-01}
+    command: >
+      postgres
+        -c jit=off
+        -c max_parallel_workers_per_gather=0
+        -c track_io_timing=on
+    ports:
+      - "${PGPORT:-5432}:5432"
+    shm_size: 1g
+    volumes:
+      # Mount files individually: the image ships its own init scripts
+      # (000_install_timescaledb.sh, 001_timescaledb_tune.sh) in this directory.
+      - ./db/init/100_schema.sql:/docker-entrypoint-initdb.d/100_schema.sql:ro
+      - ./db/init/110_bench_functions.sql:/docker-entrypoint-initdb.d/110_bench_functions.sql:ro
+      - ./db/init/200_seed.sh:/docker-entrypoint-initdb.d/200_seed.sh:ro
+      # PG18 images keep PGDATA at /var/lib/postgresql/18/docker.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bank"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+volumes:
+  pgdata:

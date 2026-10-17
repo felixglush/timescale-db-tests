@@ -1,0 +1,123 @@
+-- params: ([Int4(10), Int4(18), Int4(22), Int4(38), Int4(41), Int4(47), Int4(61), Int4(63), Int4(80), Int4(84)], datetime.datetime(2025, 2, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2025, 12, 1, 0, 0, tzinfo=datetime.timezone.utc))
+Sort  (cost=2568.49..2592.21 rows=9489 width=104) (actual time=13.959..14.525 rows=9490.00 loops=1)
+  Sort Key: t.client_id, t.txn_ts
+  Sort Method: quicksort  Memory: 1561kB
+  Buffers: shared hit=1541
+  ->  Hash Join  (cost=38.62..1941.65 rows=9489 width=104) (actual time=0.302..8.570 rows=9490.00 loops=1)
+        Hash Cond: (v.category_id = c.category_id)
+        Buffers: shared hit=1541
+        ->  Hash Join  (cost=37.33..1907.32 rows=9489 width=96) (actual time=0.268..7.185 rows=9490.00 loops=1)
+              Hash Cond: (t.vendor_id = v.vendor_id)
+              Buffers: shared hit=1540
+              ->  Hash Join  (cost=23.23..1868.08 rows=9489 width=87) (actual time=0.147..5.630 rows=9490.00 loops=1)
+                    Hash Cond: (t.account_id = a.account_id)
+                    Buffers: shared hit=1536
+                    ->  Append  (cost=16.73..1836.15 rows=9489 width=78) (actual time=0.078..4.165 rows=9490.00 loops=1)
+                          Buffers: shared hit=1534
+                          ->  Bitmap Heap Scan on _hyper_49_1010_chunk t_1  (cost=16.73..151.91 rows=309 width=78) (actual time=0.078..0.199 rows=310.00 loops=1)
+                                Recheck Cond: ((client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[])) AND (txn_ts >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                Heap Blocks: exact=43
+                                Buffers: shared hit=63
+                                ->  Bitmap Index Scan on _hyper_49_1010_chunk_transactions_client_ts_idx  (cost=0.00..16.62 rows=309 width=0) (actual time=0.053..0.053 rows=310.00 loops=1)
+                                      Index Cond: ((client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[])) AND (txn_ts >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 10
+                                      Buffers: shared hit=20
+                          ->  Bitmap Heap Scan on _hyper_49_1011_chunk t_2  (cost=20.06..164.16 rows=940 width=78) (actual time=0.093..0.395 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1011_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.064..0.064 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1012_chunk t_3  (cost=20.06..163.16 rows=940 width=78) (actual time=0.098..0.322 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1012_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.068..0.068 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1013_chunk t_4  (cost=20.06..164.16 rows=940 width=78) (actual time=0.089..0.301 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1013_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.060..0.061 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1014_chunk t_5  (cost=20.06..163.16 rows=940 width=78) (actual time=0.083..0.301 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1014_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.060..0.060 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1015_chunk t_6  (cost=20.06..163.16 rows=940 width=78) (actual time=0.117..0.336 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1015_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.090..0.090 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1016_chunk t_7  (cost=20.06..163.16 rows=940 width=78) (actual time=0.107..0.340 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1016_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.075..0.076 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1017_chunk t_8  (cost=20.06..164.16 rows=940 width=78) (actual time=0.095..0.319 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=130
+                                Buffers: shared hit=151
+                                ->  Bitmap Index Scan on _hyper_49_1017_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.064..0.064 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1018_chunk t_9  (cost=20.06..163.16 rows=940 width=78) (actual time=0.096..0.338 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1018_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.063..0.063 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1019_chunk t_10  (cost=20.06..163.16 rows=940 width=78) (actual time=0.093..0.321 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                Heap Blocks: exact=129
+                                Buffers: shared hit=150
+                                ->  Bitmap Index Scan on _hyper_49_1019_chunk_transactions_client_ts_idx  (cost=0.00..19.80 rows=940 width=0) (actual time=0.062..0.062 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                          ->  Bitmap Heap Scan on _hyper_49_1020_chunk t_11  (cost=21.95..165.36 rows=720 width=78) (actual time=0.097..0.283 rows=720.00 loops=1)
+                                Recheck Cond: ((client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[])) AND (txn_ts >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                Heap Blocks: exact=99
+                                Buffers: shared hit=120
+                                ->  Bitmap Index Scan on _hyper_49_1020_chunk_transactions_client_ts_idx  (cost=0.00..21.75 rows=720 width=0) (actual time=0.066..0.067 rows=720.00 loops=1)
+                                      Index Cond: ((client_id = ANY ('{10,18,22,38,41,47,61,63,80,84}'::integer[])) AND (txn_ts >= '2025-02-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 10
+                                      Buffers: shared hit=21
+                    ->  Hash  (cost=4.00..4.00 rows=200 width=17) (actual time=0.060..0.061 rows=200.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 19kB
+                          Buffers: shared hit=2
+                          ->  Seq Scan on accounts a  (cost=0.00..4.00 rows=200 width=17) (actual time=0.015..0.029 rows=200.00 loops=1)
+                                Buffers: shared hit=2
+              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.114..0.119 rows=449.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 31kB
+                    Buffers: shared hit=4
+                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.014..0.046 rows=449.00 loops=1)
+                          Buffers: shared hit=4
+        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.026..0.027 rows=13.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.017..0.018 rows=13.00 loops=1)
+                    Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=88
+Planning Time: 1.126 ms
+Execution Time: 15.790 ms

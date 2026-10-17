@@ -1,0 +1,85 @@
+-- params: ([Int4(910), Int4(1342), Int4(2075), Int4(4140), Int4(4353), Int4(4857), Int4(5080), Int4(5120), Int4(7835), Int4(9979)], datetime.datetime(2025, 8, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2025, 12, 1, 0, 0, tzinfo=datetime.timezone.utc))
+Sort  (cost=5040.34..5049.88 rows=3816 width=104) (actual time=32.528..32.720 rows=3820.00 loops=1)
+  Sort Key: t.client_id, t.txn_ts
+  Sort Method: quicksort  Memory: 570kB
+  Buffers: shared hit=3208 read=769
+  I/O Timings: shared read=8.771
+  ->  Hash Join  (cost=613.82..4813.33 rows=3816 width=104) (actual time=5.122..29.902 rows=3820.00 loops=1)
+        Hash Cond: (v.category_id = c.category_id)
+        Buffers: shared hit=3208 read=769
+        I/O Timings: shared read=8.771
+        ->  Hash Join  (cost=612.53..4798.75 rows=3816 width=96) (actual time=5.076..28.876 rows=3820.00 loops=1)
+              Hash Cond: (t.vendor_id = v.vendor_id)
+              Buffers: shared hit=3207 read=769
+              I/O Timings: shared read=8.771
+              ->  Hash Join  (cost=598.42..4774.54 rows=3816 width=87) (actual time=4.951..27.456 rows=3820.00 loops=1)
+                    Hash Cond: (t.account_id = a.account_id)
+                    Buffers: shared hit=3203 read=769
+                    I/O Timings: shared read=8.771
+                    ->  Append  (cost=0.42..4166.53 rows=3816 width=78) (actual time=0.038..21.361 rows=3820.00 loops=1)
+                          Buffers: shared hit=3055 read=769
+                          I/O Timings: shared read=8.771
+                          ->  Index Scan using _hyper_57_1184_chunk_transactions_client_ts_idx on _hyper_57_1184_chunk t_1  (cost=0.42..326.25 rows=280 width=78) (actual time=0.037..0.645 rows=280.00 loops=1)
+                                Index Cond: ((client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[])) AND (txn_ts >= '2025-08-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                Index Searches: 10
+                                Buffers: shared hit=276 read=34
+                                I/O Timings: shared read=0.180
+                          ->  Bitmap Heap Scan on _hyper_57_1185_chunk t_2  (cost=22.56..1011.38 rows=941 width=78) (actual time=0.402..4.659 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[]))
+                                Heap Blocks: exact=900
+                                Buffers: shared hit=794 read=139
+                                I/O Timings: shared read=1.746
+                                ->  Bitmap Index Scan on _hyper_57_1185_chunk_transactions_client_ts_idx  (cost=0.00..22.30 rows=941 width=0) (actual time=0.271..0.271 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=20 read=13
+                                      I/O Timings: shared read=0.055
+                          ->  Bitmap Heap Scan on _hyper_57_1186_chunk t_3  (cost=22.48..1003.76 rows=933 width=78) (actual time=0.344..6.846 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[]))
+                                Heap Blocks: exact=895
+                                Buffers: shared hit=772 read=156
+                                I/O Timings: shared read=3.512
+                                ->  Bitmap Index Scan on _hyper_57_1186_chunk_transactions_client_ts_idx  (cost=0.00..22.23 rows=933 width=0) (actual time=0.224..0.225 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=20 read=13
+                                      I/O Timings: shared read=0.061
+                          ->  Bitmap Heap Scan on _hyper_57_1187_chunk t_4  (cost=22.56..1014.61 rows=944 width=78) (actual time=0.469..6.678 rows=940.00 loops=1)
+                                Recheck Cond: (client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[]))
+                                Heap Blocks: exact=898
+                                Buffers: shared hit=725 read=206
+                                I/O Timings: shared read=3.098
+                                ->  Bitmap Index Scan on _hyper_57_1187_chunk_transactions_client_ts_idx  (cost=0.00..22.30 rows=944 width=0) (actual time=0.339..0.339 rows=940.00 loops=1)
+                                      Index Cond: (client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[]))
+                                      Index Searches: 10
+                                      Buffers: shared hit=20 read=13
+                                      I/O Timings: shared read=0.068
+                          ->  Bitmap Heap Scan on _hyper_57_1188_chunk t_5  (cost=24.45..791.44 rows=718 width=78) (actual time=0.322..2.129 rows=720.00 loops=1)
+                                Recheck Cond: ((client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[])) AND (txn_ts >= '2025-08-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                Heap Blocks: exact=689
+                                Buffers: shared hit=488 read=234
+                                I/O Timings: shared read=0.236
+                                ->  Bitmap Index Scan on _hyper_57_1188_chunk_transactions_client_ts_idx  (cost=0.00..24.25 rows=718 width=0) (actual time=0.215..0.215 rows=720.00 loops=1)
+                                      Index Cond: ((client_id = ANY ('{910,1342,2075,4140,4353,4857,5080,5120,7835,9979}'::integer[])) AND (txn_ts >= '2025-08-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
+                                      Index Searches: 10
+                                      Buffers: shared hit=20 read=13
+                                      I/O Timings: shared read=0.060
+                    ->  Hash  (cost=348.00..348.00 rows=20000 width=17) (actual time=4.751..4.755 rows=20000.00 loops=1)
+                          Buckets: 32768  Batches: 1  Memory Usage: 1272kB
+                          Buffers: shared hit=148
+                          ->  Seq Scan on accounts a  (cost=0.00..348.00 rows=20000 width=17) (actual time=0.017..1.500 rows=20000.00 loops=1)
+                                Buffers: shared hit=148
+              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.118..0.118 rows=449.00 loops=1)
+                    Buckets: 1024  Batches: 1  Memory Usage: 31kB
+                    Buffers: shared hit=4
+                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.018..0.050 rows=449.00 loops=1)
+                          Buffers: shared hit=4
+        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.035..0.035 rows=13.00 loops=1)
+              Buckets: 1024  Batches: 1  Memory Usage: 9kB
+              Buffers: shared hit=1
+              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.023..0.024 rows=13.00 loops=1)
+                    Buffers: shared hit=1
+Planning:
+  Buffers: shared hit=54
+Planning Time: 1.033 ms
+Execution Time: 33.691 ms

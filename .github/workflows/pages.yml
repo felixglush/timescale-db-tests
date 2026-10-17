@@ -1,4 +1,5 @@
 # Publishes the visual report (docs/report.html) to GitHub Pages.
+# Requires Settings > Pages > Source: GitHub Actions (configure-pages fails with "Not Found" otherwise).
 name: pages
 
 on:

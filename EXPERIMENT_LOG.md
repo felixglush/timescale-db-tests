@@ -5,7 +5,7 @@ what does TimescaleDB (hypertables, then compression) buy in latency and storage
 compared with plain Postgres, and how does that change as the number of clients
 grows?
 
-Charts: `results/figures/` (regenerate with `python3 bench/plots.py`). Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
+Visual version: [docs/report.html](docs/report.html), built by `python3 bench/build_html.py`. Charts: `results/figures/` (regenerate with `python3 bench/plots.py`). Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
 `results/latency_raw.csv`. Plans: `results/plans/`.
 
 ## Setup (all runs)
@@ -39,6 +39,34 @@ Charts: `results/figures/` (regenerate with `python3 bench/plots.py`). Full tabl
   - **exec:** server execution time from `EXPLAIN (ANALYZE, TIMING OFF, BUFFERS)`. This excludes planning time and sending rows to the client.
 - **cold:** before *every* execution, `pg_buffercache_evict_all()` empties shared_buffers and `echo 3 > /proc/sys/vm/drop_caches` empties the host page cache. Each query then gets 25 runs with different random parameters, measuring exec time and the 8 KB blocks read by the scans on transactions. The first run is discarded because it fills the backend's catalog caches. The harness refuses to run cold measurements if it can't drop the page cache. (Runs 1 to 3 dropped caches only once per variant; see run 4.)
 - **storage:** `hypertable_detailed_size()`, or `pg_total_relation_size()` for plain tables. Both include heap, toast and indexes.
+
+## How TimescaleDB compression works
+
+TimescaleDB compresses one chunk at a time. Each chunk holds one time window, such as 30 days of rows.
+
+1. **Group.** Rows are grouped by the `segmentby` column (`client_id`) and sorted by the `orderby` column (`txn_ts`). Each group is split into **batches** of up to 1,000 rows.
+2. **Pivot to columns.** Each batch becomes *one* row in a hidden "compressed chunk" table. That row holds one compressed array per column (all the batch's `txn_ts` values, all its `amount` values, and so on), plus metadata: the `client_id`, the row count, and the batch's first and last `txn_ts`.
+3. **Encode each column with a type-specific lossless codec:**
+   - Integers and timestamps: delta-of-delta encoding, then Simple-8b bit packing and run-length encoding.
+   - Floats: Gorilla XOR encoding.
+   - Low-cardinality values (enums, repeated strings): a dictionary.
+   - Everything else, such as free text and `numeric`: an array that Postgres's TOAST compression (pglz/LZ4) then compresses. Large arrays live in the chunk's TOAST table, which is why "toast" dominates the compressed sizes below.
+4. **Index the metadata.** A btree on `(client_id, first_txn_ts, last_txn_ts)` lets a query find a client's batches for a date range without touching anything else.
+
+Compression is **lossless**: every value comes back exactly as stored. Reads decompress on the fly. The plan shows a `ColumnarScan` over an index scan on the compressed chunk, and the time filter is then applied as a vectorized filter on the decompressed batch. Writes into already-compressed chunks, updates and deletes are possible but slower, so the usual pattern is to compress a chunk once its time window has closed.
+
+## Why compression makes these queries faster
+
+The cost of a per-client query is mostly **how many 8 KB pages it has to read**. On a cold cache, each page is a disk read.
+
+- **Plain table and hypertable: rows are in arrival order.** Each day, all 10k clients' transactions arrive interleaved. One heap page holds about 73 rows (156,832 pages for 11.43M rows), and at 10k clients those 73 rows almost always belong to 73 different clients. One client's 95 rows for a month are therefore on about 95 different pages. Q4 returns about 6,500 rows and reads about 6,200 pages (48 MB). The index finds the rows quickly, but fetching each one is a separate page read. Splitting into time chunks doesn't change this, because each chunk is still in arrival order.
+- **Compressed hypertable: rows are regrouped by client.** Because of `segmentby client_id`, one client's month (30-day chunk) or quarter (90-day chunk) is a single batch: a compressed row of about 5 KB, mostly in TOAST, spanning 1 or 2 pages. Q4 at 90-day chunks reads 174 blocks, 35x fewer than plain.
+- **The bytes are also 3 to 4x smaller,** so the batches that are read carry less data. The win is mostly locality, though:
+  - `plain_clustered`, the same plain table physically re-sorted by `(client_id, txn_ts)`, reads about as few pages as `cmp_90d` and is just as fast cold.
+  - CLUSTER is a one-off: new rows land in arrival order again. Compression runs on every chunk once its window closes, so it keeps the client-grouped layout as data grows, and shrinks it at the same time.
+- **Warm (everything in memory),** there is no disk to save. Visiting about 95 cached heap pages and decompressing one batch cost about the same CPU, so the variants tie on small queries. On Q4, compressed is about 25% faster because it touches fewer buffers.
+- **Small tables don't benefit.** At 100 clients the whole table is 19 MB. Readahead pulls in neighbouring pages almost for free, and compressed is no faster than plain cold.
+- **The gap grows with client count.** More clients means more other clients' rows interleaved between one client's rows, so plain's pages-per-row stays at about 1 while the table grows. Compressed reads stay nearly flat.
 
 ---
 

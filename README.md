@@ -87,12 +87,16 @@ metadata. Pick the variant with `SET search_path = cmp_30d, public;`.
 
 ```bash
 docker compose up -d
-pip install "psycopg[binary]"
-sudo python3 bench/run_ablation.py --clients 100,1000,10000   # root only to drop the page cache for cold runs
+pip install "psycopg[binary]" matplotlib
+sudo python3 bench/run_ablation.py --clients 100,1000,10000   # root: cold runs drop the page cache (or pass --no-cold)
 python3 bench/report.py                                       # -> results/RESULTS.md
+python3 bench/plots.py                                        # -> results/figures/*.png
 ```
 
 The script reseeds the database for each client count, so it destroys whatever
 is in it. Outputs in `results/`: `latency_raw.csv`, `latency_summary.csv`,
 `sizes.csv`, `build.csv`, `run_meta.json`, and one `EXPLAIN (ANALYZE, BUFFERS)`
 per query/variant/scale in `results/plans/`.
+
+Cold measurements empty shared_buffers (`pg_buffercache_evict_all()`) and the
+host page cache before every execution; the script aborts if it can't.

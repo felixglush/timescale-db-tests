@@ -1,41 +1,41 @@
 -- params: ([Int4(18), Int4(109), Int4(282), Int4(401), Int4(536), Int4(802), Int4(849), Int4(851), Int4(976), Int4(991)], datetime.datetime(2025, 11, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2025, 12, 1, 0, 0, tzinfo=datetime.timezone.utc))
-Sort  (cost=97.49..98.20 rows=283 width=106) (actual time=2.112..2.155 rows=940.00 loops=1)
+Sort  (cost=97.49..98.20 rows=283 width=106) (actual time=1.962..2.003 rows=940.00 loops=1)
   Sort Key: t.client_id, t.txn_ts
   Sort Method: quicksort  Memory: 141kB
   Buffers: shared hit=252
-  ->  Hash Join  (cost=83.49..85.97 rows=283 width=106) (actual time=0.752..1.749 rows=940.00 loops=1)
+  ->  Hash Join  (cost=83.49..85.97 rows=283 width=106) (actual time=0.712..1.625 rows=940.00 loops=1)
         Hash Cond: (v.category_id = c.category_id)
         Buffers: shared hit=252
-        ->  Hash Join  (cost=82.19..83.69 rows=283 width=98) (actual time=0.719..1.575 rows=940.00 loops=1)
+        ->  Hash Join  (cost=82.19..83.69 rows=283 width=98) (actual time=0.679..1.464 rows=940.00 loops=1)
               Hash Cond: (t.vendor_id = v.vendor_id)
               Buffers: shared hit=251
-              ->  Hash Join  (cost=68.09..68.83 rows=283 width=89) (actual time=0.597..1.257 rows=940.00 loops=1)
+              ->  Hash Join  (cost=68.09..68.83 rows=283 width=89) (actual time=0.558..1.196 rows=940.00 loops=1)
                     Hash Cond: (t.account_id = a.account_id)
                     Buffers: shared hit=247
-                    ->  Custom Scan (ColumnarScan) on _hyper_40_839_chunk t  (cost=8.09..8.09 rows=282 width=80) (actual time=0.100..0.607 rows=940.00 loops=1)
+                    ->  Custom Scan (ColumnarScan) on _hyper_56_1175_chunk t  (cost=8.09..8.09 rows=282 width=80) (actual time=0.096..0.596 rows=940.00 loops=1)
                           Vectorized Filter: ((txn_ts >= '2025-11-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
                           Rows Removed by Filter: 1880
                           Buffers: shared hit=232
-                          ->  Index Scan using _hyper_40_839_chunk_compresse_client_id__ts_meta_v2_first_t_idx on _hyper_40_839_chunk_compressed  (cost=0.28..5.27 rows=1 width=248) (actual time=0.023..0.057 rows=10.00 loops=1)
+                          ->  Index Scan using _hyper_56_1175_chunk_compress_client_id__ts_meta_v2_first_t_idx on _hyper_56_1175_chunk_compressed  (cost=0.28..5.27 rows=1 width=248) (actual time=0.021..0.050 rows=10.00 loops=1)
                                 Index Cond: ((client_id = ANY ('{18,109,282,401,536,802,849,851,976,991}'::integer[])) AND (_ts_meta_v2_first_txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone) AND (_ts_meta_v2_last_txn_ts >= '2025-11-01 00:00:00+00'::timestamp with time zone))
                                 Index Searches: 5
                                 Buffers: shared hit=19
-                    ->  Hash  (cost=35.00..35.00 rows=2000 width=17) (actual time=0.488..0.489 rows=2000.00 loops=1)
+                    ->  Hash  (cost=35.00..35.00 rows=2000 width=17) (actual time=0.454..0.454 rows=2000.00 loops=1)
                           Buckets: 2048  Batches: 1  Memory Usage: 118kB
                           Buffers: shared hit=15
-                          ->  Seq Scan on accounts a  (cost=0.00..35.00 rows=2000 width=17) (actual time=0.014..0.186 rows=2000.00 loops=1)
+                          ->  Seq Scan on accounts a  (cost=0.00..35.00 rows=2000 width=17) (actual time=0.042..0.174 rows=2000.00 loops=1)
                                 Buffers: shared hit=15
-              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.116..0.116 rows=449.00 loops=1)
+              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.115..0.115 rows=449.00 loops=1)
                     Buckets: 1024  Batches: 1  Memory Usage: 31kB
                     Buffers: shared hit=4
-                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.016..0.047 rows=449.00 loops=1)
+                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.012..0.043 rows=449.00 loops=1)
                           Buffers: shared hit=4
-        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.025..0.025 rows=13.00 loops=1)
+        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.026..0.026 rows=13.00 loops=1)
               Buckets: 1024  Batches: 1  Memory Usage: 9kB
               Buffers: shared hit=1
-              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.016..0.018 rows=13.00 loops=1)
+              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.017..0.019 rows=13.00 loops=1)
                     Buffers: shared hit=1
 Planning:
   Buffers: shared hit=22
-Planning Time: 0.741 ms
-Execution Time: 2.443 ms
+Planning Time: 0.605 ms
+Execution Time: 2.280 ms

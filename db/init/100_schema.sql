@@ -10,6 +10,7 @@
 -- `transactions` and the variant is picked with search_path.
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
+CREATE EXTENSION IF NOT EXISTS pg_buffercache;  -- cold-cache benchmark runs evict shared_buffers
 
 CREATE TABLE clients (
     client_id   integer PRIMARY KEY,

@@ -7,8 +7,8 @@ in queries/ against every variant:
 
   warm  - steady state: same randomised parameter sequence for every variant,
           after a warm-up pass (data is in shared_buffers / OS page cache).
-  cold  - container restarted and the host page cache dropped before each
-          variant, then distinct parameters so most data pages are first reads.
+  cold  - shared_buffers evicted (pg_buffercache_evict_all) and the host page
+          cache dropped before every execution, so data pages are first reads.
 
 Usage (database from docker-compose.yml must be up):
   python3 bench/run_ablation.py --clients 100,1000,10000
@@ -19,10 +19,10 @@ import argparse
 import csv
 import datetime as dt
 import json
+import os
 import random
 import re
 import statistics
-import subprocess
 import time
 from pathlib import Path
 
@@ -36,7 +36,6 @@ QUERIES = {
     "Q3_clients_month": "q3_clients_month.sql",
     "Q4_clients_range": "q4_clients_range.sql",
 }
-CONTAINER = "tsdb-bench"
 
 
 def load_query(name: str) -> str:
@@ -109,26 +108,13 @@ def connect(dsn: str, variant: str | None = None) -> psycopg.Connection:
     return conn
 
 
-def wait_ready(dsn: str, timeout=120):
-    t0 = time.time()
-    while time.time() - t0 < timeout:
-        try:
-            with psycopg.connect(dsn, connect_timeout=2) as c:
-                c.execute("SELECT 1")
-                return
-        except psycopg.OperationalError:
-            time.sleep(0.5)
-    raise RuntimeError("database did not come back")
-
-
-def restart_cold(dsn: str):
-    subprocess.run(["docker", "restart", CONTAINER], check=True, capture_output=True)
-    subprocess.run(["sync"], check=True)
-    try:
-        Path("/proc/sys/vm/drop_caches").write_text("3\n")
-    except OSError as e:  # not root / not permitted: cold numbers then only cover shared_buffers
-        print(f"  ! could not drop page cache: {e}")
-    wait_ready(dsn)
+def drop_caches(conn):
+    """Make the next query fully cold: evict Postgres shared_buffers, then the
+    host page cache. Raises if the page cache can't be dropped, so a run is never
+    reported as cold when the OS still holds the data."""
+    conn.execute("SELECT pg_buffercache_evict_all()")
+    os.sync()
+    Path("/proc/sys/vm/drop_caches").write_text("3\n")
 
 
 def txn_buffers(node):
@@ -214,6 +200,15 @@ def main():
     print(json.dumps(meta, indent=2))
     (out / "run_meta.json").write_text(json.dumps(meta, indent=2, default=str))
 
+    if not args.no_cold:
+        # Fail fast rather than label warm-OS-cache runs as cold.
+        try:
+            with connect(args.dsn) as c:
+                c.execute("CREATE EXTENSION IF NOT EXISTS pg_buffercache")
+                drop_caches(c)
+        except OSError as e:
+            raise SystemExit(f"cannot drop the page cache ({e}); run as root or pass --no-cold")
+
     for n_clients in [int(x) for x in args.clients.split(",")]:
         print(f"\n=== {n_clients} clients: seeding + building variants")
         t0 = time.time()
@@ -258,20 +253,20 @@ def main():
                         f"-- params: {p}\n" + "\n".join(r[0] for r in plan) + "\n")
                 print(f"  warm {v} done")
 
-        # Cold: fresh server + empty page cache per variant, distinct parameters,
-        # server-side timing only (so the read-block counts are first reads).
+        # Cold: shared_buffers and the host page cache are emptied before every
+        # execution; server-side timing only, so read-block counts are first reads.
         if not args.no_cold:
             for v in variants:
-                restart_cold(args.dsn)
                 with connect(args.dsn, v) as c:
                     for q, sql in queries.items():
                         rng = random.Random(f"cold-{n_clients}-{q}")
                         recs = []
                         for i in range(args.cold_iterations + 1):
                             p, length = make_params(q, rng, n_clients, start, months, args.set_size)
+                            drop_caches(c)
                             ex, pl, nrows, hit, read = server_timed(c, sql, p)
                             if i == 0:
-                                continue  # first execution of each query also loads catalog caches
+                                continue  # first execution also fills this backend's catalog caches
                             recs.append((None, ex, pl, hit, read, nrows))
                             raw.writerow([n_clients, v, q, "cold", i, length, nrows,
                                           "", f"{ex:.3f}", f"{pl:.3f}", hit, read])

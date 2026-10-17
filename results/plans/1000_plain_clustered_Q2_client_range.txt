@@ -1,37 +1,37 @@
 -- params: (Int4(748), datetime.datetime(2025, 4, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2025, 12, 1, 0, 0, tzinfo=datetime.timezone.utc))
-Sort  (cost=502.49..504.38 rows=759 width=100) (actual time=2.272..2.326 rows=764.00 loops=1)
+Sort  (cost=503.72..505.62 rows=762 width=100) (actual time=2.727..2.831 rows=764.00 loops=1)
   Sort Key: t.txn_ts
   Sort Method: quicksort  Memory: 116kB
   Buffers: shared hit=38
-  ->  Hash Join  (cost=75.82..466.18 rows=759 width=100) (actual time=1.028..1.919 rows=764.00 loops=1)
+  ->  Hash Join  (cost=75.82..467.24 rows=762 width=100) (actual time=1.165..2.319 rows=764.00 loops=1)
         Hash Cond: (v.category_id = c.category_id)
         Buffers: shared hit=38
-        ->  Hash Join  (cost=74.53..462.25 rows=759 width=92) (actual time=0.984..1.689 rows=764.00 loops=1)
+        ->  Hash Join  (cost=74.53..463.29 rows=762 width=92) (actual time=1.081..1.987 rows=764.00 loops=1)
               Hash Cond: (t.vendor_id = v.vendor_id)
               Buffers: shared hit=37
-              ->  Hash Join  (cost=60.43..446.13 rows=759 width=83) (actual time=0.783..1.280 rows=764.00 loops=1)
+              ->  Hash Join  (cost=60.43..447.17 rows=762 width=83) (actual time=0.880..1.438 rows=764.00 loops=1)
                     Hash Cond: (t.account_id = a.account_id)
                     Buffers: shared hit=33
-                    ->  Index Scan using transactions_client_ts_idx on transactions t  (cost=0.43..384.14 rows=759 width=74) (actual time=0.021..0.277 rows=764.00 loops=1)
+                    ->  Index Scan using transactions_client_ts_idx on transactions t  (cost=0.43..385.17 rows=762 width=74) (actual time=0.032..0.274 rows=764.00 loops=1)
                           Index Cond: ((client_id = 748) AND (txn_ts >= '2025-04-01 00:00:00+00'::timestamp with time zone) AND (txn_ts < '2025-12-01 00:00:00+00'::timestamp with time zone))
                           Index Searches: 1
                           Buffers: shared hit=18
-                    ->  Hash  (cost=35.00..35.00 rows=2000 width=17) (actual time=0.748..0.749 rows=2000.00 loops=1)
+                    ->  Hash  (cost=35.00..35.00 rows=2000 width=17) (actual time=0.827..0.828 rows=2000.00 loops=1)
                           Buckets: 2048  Batches: 1  Memory Usage: 118kB
                           Buffers: shared hit=15
-                          ->  Seq Scan on accounts a  (cost=0.00..35.00 rows=2000 width=17) (actual time=0.017..0.262 rows=2000.00 loops=1)
+                          ->  Seq Scan on accounts a  (cost=0.00..35.00 rows=2000 width=17) (actual time=0.024..0.304 rows=2000.00 loops=1)
                                 Buffers: shared hit=15
-              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.190..0.193 rows=449.00 loops=1)
+              ->  Hash  (cost=8.49..8.49 rows=449 width=17) (actual time=0.184..0.196 rows=449.00 loops=1)
                     Buckets: 1024  Batches: 1  Memory Usage: 31kB
                     Buffers: shared hit=4
-                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.020..0.076 rows=449.00 loops=1)
+                    ->  Seq Scan on vendors v  (cost=0.00..8.49 rows=449 width=17) (actual time=0.032..0.079 rows=449.00 loops=1)
                           Buffers: shared hit=4
-        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.036..0.036 rows=13.00 loops=1)
+        ->  Hash  (cost=1.13..1.13 rows=13 width=12) (actual time=0.059..0.059 rows=13.00 loops=1)
               Buckets: 1024  Batches: 1  Memory Usage: 9kB
               Buffers: shared hit=1
-              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.022..0.024 rows=13.00 loops=1)
+              ->  Seq Scan on categories c  (cost=0.00..1.13 rows=13 width=12) (actual time=0.041..0.042 rows=13.00 loops=1)
                     Buffers: shared hit=1
 Planning:
   Buffers: shared hit=20
-Planning Time: 0.645 ms
-Execution Time: 2.558 ms
+Planning Time: 1.101 ms
+Execution Time: 3.213 ms

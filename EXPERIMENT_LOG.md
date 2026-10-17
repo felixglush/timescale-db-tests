@@ -5,7 +5,7 @@ what does TimescaleDB (hypertables, then compression) buy in latency and storage
 compared with plain Postgres, and how does that change as the number of clients
 grows?
 
-Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
+Charts: `results/figures/` (regenerate with `python3 bench/plots.py`). Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
 `results/latency_raw.csv`. Plans: `results/plans/`.
 
 ## Setup (all runs)
@@ -37,7 +37,7 @@ Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
 - **warm:** 20 warm-up runs, then 200 measured runs per query, variant and scale. Each run is measured two ways:
   - **e2e:** a prepared statement executed from psycopg 3, with all rows fetched into Python.
   - **exec:** server execution time from `EXPLAIN (ANALYZE, TIMING OFF, BUFFERS)`. This excludes planning time and sending rows to the client.
-- **cold:** before each variant, `docker restart` plus `echo 3 > /proc/sys/vm/drop_caches`. Then 25 runs per query, each with different random parameters, measuring exec time and the 8 KB blocks read by the scans on transactions. The first run is discarded because it loads catalog caches.
+- **cold:** before *every* execution, `pg_buffercache_evict_all()` empties shared_buffers and `echo 3 > /proc/sys/vm/drop_caches` empties the host page cache. Each query then gets 25 runs with different random parameters, measuring exec time and the 8 KB blocks read by the scans on transactions. The first run is discarded because it fills the backend's catalog caches. The harness refuses to run cold measurements if it can't drop the page cache. (Runs 1 to 3 dropped caches only once per variant; see run 4.)
 - **storage:** `hypertable_detailed_size()`, or `pg_total_relation_size()` for plain tables. Both include heap, toast and indexes.
 
 ---
@@ -65,9 +65,20 @@ Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
   - At larger scales Postgres kept using custom plans, so it hid the problem. Production code could hit it at any scale once a generic plan is cached.
   - **Fix:** bind client ids as `int4` (`psycopg.types.numeric.Int4`) or declare parameter types in `PREPARE`. The harness now does the former.
 
-## Run 3: 100 / 1k / 10k (final, reported below)
+## Run 3: 100 / 1k / 10k (superseded for cold numbers)
 
-`python3 bench/run_ablation.py --clients 100,1000,10000`. The run took about 30 minutes, about 10 of them building the 10k-client variants (11.43M rows each).
+The harness was fixed to bind ids as int4. Warm results and storage from this run match run 4. Its cold numbers were biased, as described next.
+
+## Run 4: 100 / 1k / 10k (final, reported below)
+
+Code review (Codex, on PR #1) found two real problems with the cold methodology:
+
+- **Caches were reset once per variant, not per execution.** Each later run, and each query after Q1, could reuse pages loaded by earlier runs. At 100 clients, plain Q4 showed only about 4 blocks read, because Q1 to Q3 had already cached most of the 19 MB table. The bias favoured small tables, so it also favoured compressed variants at large scale, since they become fully cached sooner.
+- **A failed `drop_caches` was only printed,** and the run was still labelled cold.
+
+Fix: before every cold execution, evict shared_buffers with `pg_buffercache_evict_all()` (PG18) and drop the page cache. If the page cache can't be dropped, the run aborts. With the per-execution reset, plain/hyper cold latencies went up about 2x at 10k clients (Q4: 92 → 202 ms). Compressed went up less (Q4 cmp_30d: 29 → 34 ms), so the cold advantage of compression is larger than run 3 showed.
+
+`python3 bench/run_ablation.py --clients 100,1000,10000`, then `python3 bench/report.py` and `python3 bench/plots.py`. The run took about 30 minutes, about 10 of them building the 10k-client variants (11.43M rows each).
 
 ### Storage
 
@@ -75,9 +86,11 @@ Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
 |---|---:|---:|---:|---:|
 | plain | 19.2 MB | 191 MB | 1,912 MB | 175 |
 | hyper | 20.2 MB | 192 MB | 1,912 MB | 175 |
-| cmp_7d | 14.4 MB (1.3x) | 111 MB (1.7x) | 1,049 MB (1.8x) | 96 |
+| cmp_7d | 14.4 MB (1.3x) | 111 MB (1.7x) | 1,053 MB (1.8x) | 97 |
 | cmp_30d | 7.4 MB (2.6x) | 60 MB (3.2x) | 586 MB (3.3x) | 54 |
 | cmp_90d | 5.4 MB (3.6x) | 48 MB (4.0x) | 476 MB (4.0x) | 44 |
+
+![Storage at 10k clients](results/figures/storage.png)
 
 - Storage scales linearly with client count for every variant. The compression ratio stays roughly flat above 1k clients. At 100 clients, per-chunk fixed overhead lowers it.
 - Of plain's 175 bytes per row, 107 are heap and 60 are the two btree indexes. Compressed chunks keep only a small segment index, about 0.2 to 2 bytes per row.
@@ -95,50 +108,58 @@ Full tables: [results/RESULTS.md](results/RESULTS.md). Raw data:
 
 ### Latency at 10k clients (ms, p50)
 
+![Cold-cache latency per query at 10k clients](results/figures/latency_cold.png)
+
+![Warm-cache latency per query at 10k clients](results/figures/latency_warm.png)
+
 | query | rows | plain warm | hyper warm | cmp_30d warm | cmp_90d warm | plain cold | hyper cold | cmp_30d cold | cmp_90d cold | plain_clustered cold |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Q1 client, month | 95 | 0.55 | 0.59 | 0.68 | 0.72 | 6.6 | 6.4 | 2.1 | 1.9 | 1.1 |
-| Q2 client, 1-12 mo | ~630 | 2.3 | 2.7 | 2.5 | 2.0 | 34.9 | 29.9 | 4.9 | 3.7 | 2.2 |
-| Q3 10 clients, month | ~950 | 3.1 | 4.0 | 3.1 | 3.4 | 38.1 | 33.2 | 9.9 | 10.0 | 5.9 |
-| Q4 10 clients, 1-12 mo | ~6,500 | 19.8 | 25.3 | 15.1 | 14.2 | 91.6 | 104.6 | 28.5 | 22.6 | 16.2 |
+| Q1 client, month | 95 | 0.61 | 0.58 | 0.61 | 0.65 | 7.6 | 7.9 | 2.4 | 2.1 | 1.3 |
+| Q2 client, 1-12 mo | ~630 | 2.3 | 2.4 | 2.5 | 1.9 | 36.2 | 31.8 | 6.3 | 4.4 | 2.8 |
+| Q3 10 clients, month | ~950 | 3.5 | 3.6 | 3.0 | 3.6 | 54.7 | 48.6 | 10.1 | 12.0 | 7.5 |
+| Q4 10 clients, 1-12 mo | ~6,500 | 19.5 | 23.7 | 14.6 | 14.4 | 201.6 | 165.1 | 34.2 | 25.2 | 18.0 |
 
-Warm = server exec time. Cold = server exec time with the page cache dropped.
+Warm = server exec time with the data in memory. Cold = server exec time with shared_buffers and the page cache emptied before every execution.
 
 Blocks read from disk per query, cold, at 10k clients:
 
 | query | plain | hyper | cmp_30d | cmp_90d | plain_clustered |
 |---|---:|---:|---:|---:|---:|
-| Q1 | 96 | 98 | 11 | 8 | 5 |
-| Q2 | 582 | 590 | 29 | 15 | 14 |
-| Q3 | 774 | 781 | 75 | 68 | 44 |
-| Q4 | 2,845 | 2,927 | 219 | 107 | 137 |
+| Q1 | 99 | 100 | 14 | 11 | 7 |
+| Q2 | 624 | 641 | 49 | 23 | 16 |
+| Q3 | 942 | 958 | 95 | 85 | 52 |
+| Q4 | 6,165 | 6,312 | 364 | 174 | 152 |
+
+![Cold latency and blocks read vs client count](results/figures/scaling_cold.png)
 
 ### Findings
 
 1. **A hypertable without compression gives these queries nothing.**
-   - Latency and size match plain Postgres within noise. Warm, it is slightly slower: planning takes about 0.3 to 0.7 ms longer, and a range is spread over several chunk indexes.
+   - Latency and size match plain Postgres within noise. Planning takes about 0.3 to 0.7 ms longer, and a range is spread over several chunk indexes.
    - Chunk exclusion has nothing to exclude, because the `(client_id, txn_ts)` btree already narrows the range.
    - Hypertables would pay off for retention (dropping old chunks) or for queries over the whole fleet by time, and neither is in this workload.
-2. **Warm, all variants perform about the same.**
-   - When the working set is in memory, every variant answers Q1 to Q3 in under about 4 ms. Q4 ranges from 14 to 25 ms, and compressed is slightly faster because it touches fewer buffers.
-   - Latency barely grows with client count for any variant, because each query reads one client's rows through an index.
-3. **Cold, compression wins by 3 to 8x, and the gap grows with client count.**
-   - At 10k clients, plain and hypertable Q4 reads about 2,900 blocks (about 23 MB) for about 6,500 rows, because arrival-order loading scatters a client's rows over roughly one heap page per row. Compressed reads 107 to 219 blocks.
-   - At 100 clients the whole table is about 19 MB and readahead absorbs the difference. At 10k clients it does not.
-4. **Most of the cold win comes from locality, not compression itself.**
+2. **Compressed queries are faster once data comes from disk, and the gap grows with client count.**
+   - At 10k clients cold, cmp_90d is 3.6x faster than plain on Q1, 8x on Q2, 4.6x on Q3 and 8x on Q4.
+   - The reason is blocks read: plain Q4 reads about 6,200 blocks (about 48 MB) for about 6,500 rows. Arrival-order loading puts each of a client's rows on a different heap page, so every row costs a page read. cmp_90d reads 174 blocks.
+   - Plain's cold latency grows with the table, because more clients means more pages interleaved between one client's rows. Compressed stays nearly flat (see the scaling chart).
+   - At 100 clients the whole table is 19 MB, plain and compressed are close cold, and cmp_7d/cmp_30d are slower than plain on Q4.
+3. **Warm, the variants are close.**
+   - When the working set is in memory, every variant answers Q1 to Q3 in under about 4 ms. On the tiny Q1, compressed is level with plain because decompression costs a little CPU.
+   - On the bigger Q4, compressed is about 25% faster (14.5 vs 19.5 ms), because it touches fewer buffers.
+4. **Most of the cold win comes from locality, not from fewer bytes.**
    - `plain_clustered` reads about as few blocks as cmp_90d and is the fastest variant cold. `segmentby client_id` is effectively a CLUSTER that stays in place, because each chunk is compressed once, after its time window closes.
-   - Compression adds 3 to 4x less disk on top of that locality, and keeps it as new data arrives. A clustered plain table loses its ordering as new rows arrive.
+   - Compression adds 4x less disk on top of that locality, and keeps it as new data arrives. A clustered plain table loses its ordering as new rows arrive.
 5. **Chunk interval matters more than anything else that was tunable.**
-   - The 7-day default doubles storage compared with 30 days, and it is the slowest compressed variant on Q1 and Q2, warm and cold. It has 53 chunks a year, so Q2/Q4 planning takes 4 to 5 ms, and its tiny batches add decompression overhead.
+   - The 7-day default doubles storage compared with 30 days and is the slowest compressed variant on most queries. It has 53 chunks a year, so Q2/Q4 planning takes 4 to 5 ms, and its tiny batches add decompression and toast overhead.
    - 90 days was best on both size and latency here. A month query decompresses up to 3x more rows than it returns, but that costs less than the extra batches and chunks.
 6. **End-to-end costs.**
-   - Client-side e2e is about 2 to 3x the server exec time. Fetching about 6,500 rows into Python costs around 10 ms.
-   - Compressed variants also re-plan on every call, because Postgres keeps choosing custom plans, so planning time counts. That makes compressed e2e about 1 to 2 ms slower than plain on the small queries even when warm.
+   - Client-side e2e is about 2 to 4x the server exec time. Fetching about 6,500 rows into Python costs around 15 to 20 ms.
+   - Compressed variants plan 0.2 to 1.2 ms longer, or 4 to 5 ms at 7-day chunks. Postgres keeps using custom plans, so that cost is paid on every call. At 10k clients warm, compressed e2e is still equal to or faster than plain.
 7. **Bind parameter types correctly** (see run 2). An `int2[]` parameter in a cached generic plan makes compressed chunks decompress every segment in the time range.
 
 ### Caveats
 
-- 10k clients (11.4M rows, 1.9 GB uncompressed) is the largest scale that fit the session's disk next to six variants. Even plain fits in RAM at that size. The cold runs simulate a larger-than-memory dataset by dropping the page cache.
+- 10k clients (11.4M rows, 1.9 GB uncompressed) is the largest scale that fit the session's disk next to six variants. Even plain fits in RAM at that size. The cold runs simulate a larger-than-memory dataset by emptying shared_buffers and the page cache before each execution, which is a worst case: in production, index upper levels and hot clients would stay cached.
 - Single client connection, no concurrent writes. A real system would also be inserting into the newest, still uncompressed chunk, and would compress chunks with a policy.
 - The PK `(txn_id, txn_ts)` on the compressed variants triggers TimescaleDB's warning "column txn_id should be used for segmenting or ordering". It only matters for uniqueness checks when inserting into compressed chunks, which this workload does not do.
 - 30-day chunks are aligned to the epoch, not to calendar months, so a month query usually touches 2 chunks.

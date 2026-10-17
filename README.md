@@ -7,8 +7,9 @@ hypertable vs a compressed hypertable as the number of clients grows.
 
 Findings and the run history are in [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md); the
 latest numbers are in [results/RESULTS.md](results/RESULTS.md). A visual version with
-interactive charts is [docs/report.html](docs/report.html) (open it in a browser;
-rebuild with `python3 bench/build_html.py`).
+interactive charts is published at https://felixglush.github.io/timescale-db-tests/
+(source [docs/report.html](docs/report.html); rebuild with `python3 bench/build_html.py`,
+and `.github/workflows/pages.yml` redeploys it on push).
 
 ## Quick start
 

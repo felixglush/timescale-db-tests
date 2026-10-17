@@ -227,6 +227,7 @@ ul.plain { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 6px; color:
     <li>Synthetic data: 3 purchases per client per day (60% Visa), payroll twice a month, and a monthly card payment, for 1,143 rows per client per year. Each client has one checking and one Visa account, plus vendors and categories.</li>
     <li>Queries: Q1 is one client for one month. Q2 is one client for 1 to 12 months. Q3 is 10 clients for one month. Q4 is 10 clients for 1 to 12 months. Random parameters, the same sequence for every layout.</li>
     <li>Warm: 200 runs per query after 20 warm-up runs. Cold: 25 runs per query, with caches emptied before each one. Times are server execution from <code>EXPLAIN ANALYZE</code>.</li>
+    <li>Limits: the <span class="mono">plain_clustered</span> layout was measured right after a one-off <code>CLUSTER</code>. Postgres does not keep that order, so new rows land in arrival order and its advantage decays. Re-sorting rewrites the whole table and blocks reads and writes while it runs (67 s for indexes plus <code>CLUSTER</code> at 10,000 clients, against 18 s for plain's indexes). Treat it as a best case, not a production option.</li>
     <li>Limits: one connection and no concurrent inserts. 10,000 clients was the largest scale the disk could hold for six copies of the data.</li>
   </ul>
 
